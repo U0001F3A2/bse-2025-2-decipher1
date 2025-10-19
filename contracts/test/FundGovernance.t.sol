@@ -7,23 +7,8 @@ import "../src/IndexFund.sol";
 import "../src/FundFactory.sol";
 import "../src/interfaces/IIndexFund.sol";
 import "../src/interfaces/IFundGovernance.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-
-contract MockERC20 is ERC20 {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        _mint(msg.sender, 1000000 * 10 ** 18);
-    }
-}
-
-contract MockSwapRouter {
-    function exactInputSingle(address, uint256, uint256, address, uint256, address, uint256, uint256)
-        external
-        returns (uint256)
-    {
-        return 0;
-    }
-}
+import "./helpers/TestHelpers.sol";
 
 contract FundGovernanceTest is Test {
     FundGovernance public governanceImplementation;
@@ -37,14 +22,14 @@ contract FundGovernanceTest is Test {
     MockERC20 public weth;
     MockERC20 public wbtc;
     MockSwapRouter public swapRouter;
-    
-    address public owner = address(1);
-    address public treasury = address(2);
-    address public user1 = address(3);
-    address public user2 = address(4);
-    
+
+    address owner = address(1);
+    address treasury = address(2);
+    address user1 = address(3);
+    address user2 = address(4);
+
     uint256 constant VOTING_PERIOD = 3 days;
-    uint256 constant QUORUM = 1000; // 10%
+    uint256 constant QUORUM = 1000;
     uint256 constant PROPOSAL_THRESHOLD = 100 * 10 ** 18;
     
     function setUp() public {
