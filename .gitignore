@@ -1,0 +1,48 @@
+# Root gitignore for BSU project
+
+# Contract build artifacts (from contracts/.gitignore)
+contracts/cache/
+contracts/out/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+contracts/docs/
+
+# Frontend artifacts (from frontend/.gitignore)
+frontend/node_modules
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+!frontend/.yarn/patches
+!frontend/.yarn/plugins
+!frontend/.yarn/releases
+!frontend/.yarn/versions
+frontend/coverage
+frontend/.next/
+frontend/out/
+frontend/build
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/.vercel
+
+# Environment files
+.env
+.env.*
+*.env
+
+# OS files
+.DS_Store
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies (submodules are tracked, but node_modules are not)
+node_modules/
