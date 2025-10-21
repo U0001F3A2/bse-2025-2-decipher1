@@ -105,10 +105,11 @@ fund-info:
 	FUND=$$(cat contracts/deployments/base-sepolia.json | grep -o '"initialFund":"[^"]*"' | cut -d'"' -f4); \
 	echo "$(GREEN)Factory Address: $$FACTORY$(NC)"; \
 	echo "$(GREEN)Fund Address: $$FUND$(NC)"; \
-	cast call $$FUND "name()(string)" --rpc-url http://localhost:8545; \
-	cast call $$FUND "symbol()(string)" --rpc-url http://localhost:8545; \
-	cast call $$FUND "totalAssets()(uint256)" --rpc-url http://localhost:8545; \
-	cast call $$FUND "totalSupply()(uint256)" --rpc-url http://localhost:8545
+	echo "$(GREEN)Name: $$(cast call $$FUND "name()(string)" --rpc-url http://localhost:8545)$(NC)"; \
+	echo "$(GREEN)Symbol: $$(cast call $$FUND "symbol()(string)" --rpc-url http://localhost:8545)$(NC)"; \
+	echo "$(GREEN)Total Supply: $$(cast call $$FUND "totalSupply()(uint256)" --rpc-url http://localhost:8545)$(NC)"; \
+	echo "$(GREEN)Management Fee: $$(cast call $$FUND "managementFee()(uint256)" --rpc-url http://localhost:8545) basis points$(NC)"; \
+	echo "$(GREEN)Treasury: $$(cast call $$FUND "treasury()(address)" --rpc-url http://localhost:8545)$(NC)"
 
 # Collect fees
 collect-fees:

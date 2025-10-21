@@ -1,116 +1,71 @@
-# Quick Start Guide
+# Quick Start (5 Minutes)
 
-This guide will get you up and running with the BSU Decentralized Index Fund in minutes.
+## Install (1 min)
 
-## Prerequisites
-
-Install Foundry:
 ```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
+make install && make build
 ```
 
-## Setup (30 seconds)
+## Test (30 sec)
 
 ```bash
-# Install dependencies
-make install
-
-# Build contracts
-make build
-
-# Run tests
 make test
 ```
 
-## Deploy Locally (1 minute)
+Expected output: `16 tests passed, 0 failed`
+
+## Deploy Locally (1 min)
 
 ```bash
-# Terminal 1: Start local blockchain
+# Terminal 1
 make anvil
 
-# Terminal 2: Deploy contracts
+# Terminal 2
 make deploy-local
 ```
 
-## Interact with Contracts
+## Verify Deployment
 
 ```bash
-# Get fund information
 make fund-info
-
-# Collect management fees
-make collect-fees
-
-# View all commands
-make help
 ```
 
-## What Was Deployed?
+Output shows:
+- Factory address
+- Fund address
+- Fund name: "Crypto Index Fund"
+- Fund symbol: "CIF"
 
-After running `make deploy-local`, you have:
+## Interact
 
-1. **IndexFund Implementation** - The core vault logic
-2. **FundFactory** - Factory for creating new funds (upgradeable)
-3. **FundGovernance** - Governance system for fund management (upgradeable)
-4. **Initial Fund** - "Crypto Index Fund" (CIF) with 60% WETH, 40% USDC allocation
-
-## Contract Addresses
-
-All deployment addresses are saved to:
-```
-contracts/deployments/base-sepolia.json
+```bash
+make collect-fees    # Collect fees (requires time passage)
+make help           # View all commands
 ```
 
-Example content:
-```json
-{
-  "network": "base-sepolia",
-  "factory": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  "governance": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-  "initialFund": "0xd8058efe0198ae9dD7D563e1b4938Dcbc86A1F81"
-}
-```
+## What's Deployed?
 
-## Key Features Verified
+1. **IndexFund** (Implementation)
+2. **FundFactory** (UUPS Proxy)
+3. **FundGovernance** (UUPS Proxy)
+4. **Crypto Index Fund** (60% WETH / 40% USDC)
 
-✅ **All 16 tests passing**
-- 9 IndexFund tests
-- 7 FundGovernance tests
-
-✅ **Deployments working**
-- Local Anvil deployment
-- Deployment info saved to JSON
-
-✅ **Makefile targets functional**
-- build, test, deploy-local
-- fund-info, collect-fees
-- format, coverage, snapshot
-
-## Next Steps
-
-1. **Deploy to testnet**: Configure `.env` and run `make deploy-testnet`
-2. **Create new funds**: Use the FundFactory contract
-3. **Manage governance**: Create proposals for fund changes
-4. **Integrate frontend**: Use the deployed contract addresses
+Addresses saved to: `contracts/deployments/base-sepolia.json`
 
 ## Common Commands
 
 ```bash
 # Development
-make test-verbose    # Run tests with detailed output
-make test-gas        # View gas usage
-make format          # Format Solidity code
-make coverage        # Generate coverage report
+make test-verbose    # Detailed test output
+make format          # Format code
+make clean           # Clean artifacts
 
 # Deployment
-make deploy-local    # Deploy to Anvil
-make deploy-testnet  # Deploy to Base Sepolia
+make deploy-testnet  # Deploy to Base Sepolia (needs .env)
 
-# Interaction
-make fund-info       # Get fund details
-make collect-fees    # Collect management fees
-make rebalance       # Rebalance fund (requires config)
+# Testing
+make test-gas        # Gas report
+make coverage        # Coverage report
 ```
 
 ## Troubleshooting
@@ -125,14 +80,8 @@ make clean && make build && make test
 # Check Anvil is running
 ps aux | grep anvil
 
-# Restart Anvil
-pkill anvil
-make anvil
+# Restart
+pkill anvil && make anvil
 ```
 
-**Need help?**
-```bash
-make help
-```
-
-For more details, see the full [README.md](README.md)
+For full documentation, see [README.md](README.md)
