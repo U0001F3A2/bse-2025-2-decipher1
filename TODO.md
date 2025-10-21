@@ -1,4 +1,4 @@
-# BSU Project TODO
+# Project TODO
 
 ## Overview
 

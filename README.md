@@ -1,4 +1,4 @@
-# BSU Decentralized Index Fund
+# Decentralized Index Fund
 
 Decentralized multi-token index fund protocol on Base with automated rebalancing and governance.
 
@@ -60,9 +60,9 @@ make rebalance        # Rebalance allocations
 
 Create `.env` for testnet deployment:
 ```bash
-PRIVATE_KEY=your_private_key
+PRIVATE_KEY=0xyour_private_key
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-BASESCAN_API_KEY=your_api_key
+ETHERSCAN_API_KEY=your_api_key
 ```
 
 ## Contract Addresses (Base Sepolia)

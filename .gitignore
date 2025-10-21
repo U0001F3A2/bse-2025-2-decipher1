@@ -6,7 +6,6 @@ contracts/out/
 contracts/broadcast/*/31337/
 contracts/broadcast/**/dry-run/
 contracts/docs/
-contracts/deployments/
 
 # Frontend artifacts (from frontend/.gitignore)
 frontend/node_modules
@@ -31,7 +30,7 @@ frontend/.vercel
 
 # Environment files
 .env
-.env.*
+.env
 *.env
 
 # OS files

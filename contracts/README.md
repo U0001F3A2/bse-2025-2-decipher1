@@ -49,9 +49,9 @@ cd /mnt/d/projects/bsu/contracts
 Create a `.env` file:
 
 ```bash
-PRIVATE_KEY=your_private_key_here
+PRIVATE_KEY=0xyour_private_key_here
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-BASESCAN_API_KEY=your_api_key_here
+ETHERSCAN_API_KEY=your_api_key_here
 ```
 
 ## Testing

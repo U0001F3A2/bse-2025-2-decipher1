@@ -1,4 +1,7 @@
-.PHONY: help install build test clean deploy-local deploy-testnet anvil deploy-factory deploy-fund fund-info collect-fees rebalance
+.PHONY: help install build test clean deploy-local deploy-testnet verify-contracts verify-factory verify-governance verify-fund anvil deploy-factory deploy-fund fund-info collect-fees rebalance
+
+# Force bash shell
+SHELL := /bin/bash
 
 # Colors for output
 GREEN := \033[0;32m
@@ -8,7 +11,7 @@ NC := \033[0m # No Color
 
 # Default target
 help:
-	@echo "$(BLUE)BSU Decentralized Index Fund - Available Commands$(NC)"
+	@echo "$(BLUE)Decentralized Index Fund - Available Commands$(NC)"
 	@echo ""
 	@echo "$(GREEN)Setup Commands:$(NC)"
 	@echo "  make install          - Install dependencies"
@@ -22,7 +25,11 @@ help:
 	@echo "  make deploy-local     - Deploy contracts to local Anvil"
 	@echo ""
 	@echo "$(GREEN)Testnet Deployment:$(NC)"
-	@echo "  make deploy-testnet   - Deploy contracts to Base Sepolia testnet"
+	@echo "  make deploy-testnet    - Deploy contracts to Base Sepolia testnet"
+	@echo "  make verify-contracts  - Verify all deployed contracts on BaseScan"
+	@echo "  make verify-factory    - Verify FundFactory contract only"
+	@echo "  make verify-governance - Verify FundGovernance contract only"
+	@echo "  make verify-fund       - Verify IndexFund contract only"
 	@echo ""
 	@echo "$(GREEN)Contract Interaction:$(NC)"
 	@echo "  make fund-info        - Get information about deployed fund"
@@ -88,11 +95,126 @@ deploy-testnet:
 		echo "$(YELLOW)Error: .env file not found. Please create it with PRIVATE_KEY and BASE_SEPOLIA_RPC_URL$(NC)"; \
 		exit 1; \
 	fi
-	cd contracts && source ../.env && forge script script/Deploy.s.sol:DeployScript \
-		--rpc-url $$BASE_SEPOLIA_RPC_URL \
-		--broadcast \
-		--verify
+	@bash -c 'set -a; source .env; set +a; cd contracts && forge script script/Deploy.s.sol:DeployScript --rpc-url $$BASE_SEPOLIA_RPC_URL --broadcast --legacy'
 	@echo "$(GREEN)Deployment to Base Sepolia completed!$(NC)"
+
+# Verify FundFactory on block explorer
+verify-factory:
+	@if [ -z "$$ETHERSCAN_API_KEY" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and ETHERSCAN_API_KEY not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	if [ -z "$$BASE_SEPOLIA_RPC_URL" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and BASE_SEPOLIA_RPC_URL not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	CHAIN_ID=$$(cast chain-id --rpc-url $$BASE_SEPOLIA_RPC_URL); \
+	DEPLOYMENTS_FILE="contracts/broadcast/Deploy.s.sol/$$CHAIN_ID/run-latest.json"; \
+	if [ ! -f "$$DEPLOYMENTS_FILE" ]; then \
+		echo "$(YELLOW)Error: No deployments found at $$DEPLOYMENTS_FILE$(NC)"; \
+		exit 1; \
+	fi; \
+	CONTRACT_ADDRESS=$$(jq -r '.transactions[] | select(.contractName == "FundFactory") | .contractAddress' $$DEPLOYMENTS_FILE | head -1); \
+	if [ "$$CONTRACT_ADDRESS" = "null" ] || [ -z "$$CONTRACT_ADDRESS" ]; then \
+		echo "$(YELLOW)Error: FundFactory address not found in deployments$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(YELLOW)Verifying FundFactory at $$CONTRACT_ADDRESS...$(NC)"; \
+	cd contracts && forge verify-contract \
+		--rpc-url $$BASE_SEPOLIA_RPC_URL \
+		$$CONTRACT_ADDRESS \
+		src/FundFactory.sol:FundFactory \
+		--etherscan-api-key $$ETHERSCAN_API_KEY \
+		--chain 84532 \
+		--watch
+
+# Verify FundGovernance on block explorer
+verify-governance:
+	@if [ -z "$$ETHERSCAN_API_KEY" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and ETHERSCAN_API_KEY not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	if [ -z "$$BASE_SEPOLIA_RPC_URL" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and BASE_SEPOLIA_RPC_URL not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	CHAIN_ID=$$(cast chain-id --rpc-url $$BASE_SEPOLIA_RPC_URL); \
+	DEPLOYMENTS_FILE="contracts/broadcast/Deploy.s.sol/$$CHAIN_ID/run-latest.json"; \
+	if [ ! -f "$$DEPLOYMENTS_FILE" ]; then \
+		echo "$(YELLOW)Error: No deployments found at $$DEPLOYMENTS_FILE$(NC)"; \
+		exit 1; \
+	fi; \
+	CONTRACT_ADDRESS=$$(jq -r '.transactions[] | select(.contractName == "FundGovernance") | .contractAddress' $$DEPLOYMENTS_FILE | head -1); \
+	if [ "$$CONTRACT_ADDRESS" = "null" ] || [ -z "$$CONTRACT_ADDRESS" ]; then \
+		echo "$(YELLOW)Error: FundGovernance address not found in deployments$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(YELLOW)Verifying FundGovernance at $$CONTRACT_ADDRESS...$(NC)"; \
+	cd contracts && forge verify-contract \
+		--rpc-url $$BASE_SEPOLIA_RPC_URL \
+		$$CONTRACT_ADDRESS \
+		src/FundGovernance.sol:FundGovernance \
+		--etherscan-api-key $$ETHERSCAN_API_KEY \
+		--chain 84532 \
+		--watch
+
+# Verify IndexFund on block explorer
+verify-fund:
+	@if [ -z "$$ETHERSCAN_API_KEY" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and ETHERSCAN_API_KEY not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	if [ -z "$$BASE_SEPOLIA_RPC_URL" ]; then \
+		if [ ! -f .env ]; then \
+			echo "$(YELLOW)Error: .env file not found and BASE_SEPOLIA_RPC_URL not set$(NC)"; \
+			exit 1; \
+		fi; \
+		set -a; source .env; set +a; \
+	fi; \
+	CHAIN_ID=$$(cast chain-id --rpc-url $$BASE_SEPOLIA_RPC_URL); \
+	DEPLOYMENTS_FILE="contracts/broadcast/Deploy.s.sol/$$CHAIN_ID/run-latest.json"; \
+	if [ ! -f "$$DEPLOYMENTS_FILE" ]; then \
+		echo "$(YELLOW)Error: No deployments found at $$DEPLOYMENTS_FILE$(NC)"; \
+		exit 1; \
+	fi; \
+	CONTRACT_ADDRESS=$$(jq -r '.transactions[] | select(.contractName == "IndexFund") | .contractAddress' $$DEPLOYMENTS_FILE | head -1); \
+	if [ "$$CONTRACT_ADDRESS" = "null" ] || [ -z "$$CONTRACT_ADDRESS" ]; then \
+		echo "$(YELLOW)Error: IndexFund address not found in deployments$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(YELLOW)Verifying IndexFund at $$CONTRACT_ADDRESS...$(NC)"; \
+	cd contracts && forge verify-contract \
+		--rpc-url $$BASE_SEPOLIA_RPC_URL \
+		$$CONTRACT_ADDRESS \
+		src/IndexFund.sol:IndexFund \
+		--etherscan-api-key $$ETHERSCAN_API_KEY \
+		--chain 84532 \
+		--watch
+
+# Verify all deployed contracts
+verify-contracts:
+	@echo "$(YELLOW)Verifying all deployed contracts...$(NC)"
+	@$(MAKE) verify-factory
+	@echo ""
+	@$(MAKE) verify-governance
+	@echo ""
+	@$(MAKE) verify-fund
+	@echo "$(GREEN)All contracts verified!$(NC)"
 
 # Get fund information
 fund-info:
