@@ -14,7 +14,10 @@ contract MockERC20 is ERC20 {
 }
 
 contract MockSwapRouter {
-    function exactInputSingle(address, uint256, uint256, address, uint256, address, uint256, uint256) external returns (uint256) {
+    function exactInputSingle(address, uint256, uint256, address, uint256, address, uint256, uint256)
+        external
+        returns (uint256)
+    {
         return 0;
     }
 }

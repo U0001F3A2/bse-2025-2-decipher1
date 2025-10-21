@@ -37,7 +37,8 @@ contract RebalanceScript is Script {
                         recipient: fundAddress,
                         deadline: block.timestamp + 300,
                         amountOut: targetBalance - currentBalance,
-                        amountInMaximum: ((targetBalance - currentBalance) * (BASIS_POINTS + SLIPPAGE_TOLERANCE)) / BASIS_POINTS,
+                        amountInMaximum: ((targetBalance - currentBalance) * (BASIS_POINTS + SLIPPAGE_TOLERANCE))
+                            / BASIS_POINTS,
                         sqrtPriceLimitX96: 0
                     })
                 );
@@ -51,7 +52,8 @@ contract RebalanceScript is Script {
                         recipient: fundAddress,
                         deadline: block.timestamp + 300,
                         amountIn: currentBalance - targetBalance,
-                        amountOutMinimum: ((currentBalance - targetBalance) * (BASIS_POINTS - SLIPPAGE_TOLERANCE)) / BASIS_POINTS,
+                        amountOutMinimum: ((currentBalance - targetBalance) * (BASIS_POINTS - SLIPPAGE_TOLERANCE))
+                            / BASIS_POINTS,
                         sqrtPriceLimitX96: 0
                     })
                 );
@@ -63,4 +65,3 @@ contract RebalanceScript is Script {
         vm.stopBroadcast();
     }
 }
-

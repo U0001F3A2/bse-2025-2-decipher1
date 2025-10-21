@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "./utils/ReentrancyGuardUpgradeable.sol";
 import "./interfaces/IFundGovernance.sol";
 import "./IndexFund.sol";
 import "./FundFactory.sol";
@@ -28,18 +28,15 @@ contract FundGovernance is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardU
         _disableInitializers();
     }
 
-    function initialize(
-        address _factory,
-        uint256 _votingPeriod,
-        uint256 _quorumPercentage,
-        uint256 _proposalThreshold
-    ) external initializer {
+    function initialize(address _factory, uint256 _votingPeriod, uint256 _quorumPercentage, uint256 _proposalThreshold)
+        external
+        initializer
+    {
         require(_factory != address(0), "Invalid factory");
         require(_votingPeriod > 0, "Invalid period");
         require(_quorumPercentage <= BASIS_POINTS, "Invalid quorum");
 
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
         factory = FundFactory(_factory);
@@ -48,11 +45,12 @@ contract FundGovernance is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardU
         proposalThreshold = _proposalThreshold;
     }
 
-    function propose(
-        address targetFund,
-        ProposalType proposalType,
-        bytes calldata proposalData
-    ) external override nonReentrant returns (uint256) {
+    function propose(address targetFund, ProposalType proposalType, bytes calldata proposalData)
+        external
+        override
+        nonReentrant
+        returns (uint256)
+    {
         require(IndexFund(targetFund).balanceOf(msg.sender) >= proposalThreshold, "Insufficient shares");
 
         uint256 proposalId = ++proposalCount;
@@ -154,8 +152,13 @@ contract FundGovernance is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardU
     }
 
     function _executeCreateFund(Proposal storage proposal) internal {
-        (string memory name, string memory symbol, address asset, IIndexFund.TokenAllocation[] memory allocations, uint256 managementFee) =
-            abi.decode(proposal.proposalData, (string, string, address, IIndexFund.TokenAllocation[], uint256));
+        (
+            string memory name,
+            string memory symbol,
+            address asset,
+            IIndexFund.TokenAllocation[] memory allocations,
+            uint256 managementFee
+        ) = abi.decode(proposal.proposalData, (string, string, address, IIndexFund.TokenAllocation[], uint256));
 
         factory.createFund(name, symbol, asset, allocations, managementFee);
     }
@@ -170,11 +173,10 @@ contract FundGovernance is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardU
         );
     }
 
-    function updateVotingParameters(
-        uint256 _votingPeriod,
-        uint256 _quorumPercentage,
-        uint256 _proposalThreshold
-    ) external onlyOwner {
+    function updateVotingParameters(uint256 _votingPeriod, uint256 _quorumPercentage, uint256 _proposalThreshold)
+        external
+        onlyOwner
+    {
         require(_votingPeriod > 0, "Invalid period");
         require(_quorumPercentage <= BASIS_POINTS, "Invalid quorum");
 
@@ -185,4 +187,3 @@ contract FundGovernance is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardU
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
-

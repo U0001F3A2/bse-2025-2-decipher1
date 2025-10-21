@@ -31,7 +31,6 @@ contract FundFactory is OwnableUpgradeable, UUPSUpgradeable {
         require(_treasury != address(0), "Invalid treasury");
 
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
 
         fundImplementation = _fundImplementation;
         swapRouter = _swapRouter;
@@ -46,8 +45,7 @@ contract FundFactory is OwnableUpgradeable, UUPSUpgradeable {
         uint256 managementFee
     ) external onlyOwner returns (address fund) {
         bytes memory initData = abi.encodeWithSelector(
-            IndexFund.initialize.selector,
-            name, symbol, asset, allocations, managementFee, swapRouter, treasury
+            IndexFund.initialize.selector, name, symbol, asset, allocations, managementFee, swapRouter, treasury
         );
 
         fund = address(new ERC1967Proxy(fundImplementation, initData));
@@ -111,4 +109,3 @@ contract FundFactory is OwnableUpgradeable, UUPSUpgradeable {
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
-

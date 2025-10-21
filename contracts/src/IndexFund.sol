@@ -48,7 +48,6 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
         __ERC20_init(_name, _symbol);
         __ERC4626_init(IERC20(_asset));
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
 
         managementFee = _managementFee;
         swapRouter = ISwapRouter(_swapRouter);
@@ -101,10 +100,7 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
             uint256 targetAmount = (totalValue * alloc.targetPercentage) / BASIS_POINTS;
 
             if (currentAmount > targetAmount) {
-                IERC20(alloc.token).safeIncreaseAllowance(
-                    address(swapRouter),
-                    currentAmount - targetAmount
-                );
+                IERC20(alloc.token).safeIncreaseAllowance(address(swapRouter), currentAmount - targetAmount);
             }
 
             (bool success,) = address(swapRouter).call(swapData[i]);
@@ -153,12 +149,15 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
 
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256 shares) {
         shares = super.deposit(assets, receiver);
-        emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner) public virtual override returns (uint256 shares) {
+    function withdraw(uint256 assets, address receiver, address owner)
+        public
+        virtual
+        override
+        returns (uint256 shares)
+    {
         shares = super.withdraw(assets, receiver, owner);
-        emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
     function setSlippageTolerance(uint256 _slippageTolerance) external onlyOwner {
@@ -173,4 +172,3 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
-

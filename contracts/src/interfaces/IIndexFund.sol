@@ -17,14 +17,6 @@ interface IIndexFund {
         uint256 lastFeeCollection;
     }
 
-    event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares);
-    event Withdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
-    );
     event Rebalanced(address indexed rebalancer, uint256 timestamp);
     event FeeCollected(uint256 amount, uint256 timestamp);
     event AllocationUpdated(address indexed token, uint256 newPercentage);
@@ -35,4 +27,3 @@ interface IIndexFund {
     function collectFees() external;
     function getFundInfo() external view returns (FundInfo memory);
 }
-

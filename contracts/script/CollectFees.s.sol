@@ -21,4 +21,3 @@ contract CollectFeesScript is Script {
         vm.stopBroadcast();
     }
 }
-

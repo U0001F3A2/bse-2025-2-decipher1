@@ -17,7 +17,7 @@ contract DeployScript is Script {
     uint256 constant VOTING_PERIOD = 3 days;
     uint256 constant QUORUM_PERCENTAGE = 1000;
     uint256 constant PROPOSAL_THRESHOLD = 100 * 10 ** 18;
-    
+
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -36,7 +36,13 @@ contract DeployScript is Script {
 
         ERC1967Proxy govProxy = new ERC1967Proxy(
             address(governanceImplementation),
-            abi.encodeWithSelector(FundGovernance.initialize.selector, address(factory), VOTING_PERIOD, QUORUM_PERCENTAGE, PROPOSAL_THRESHOLD)
+            abi.encodeWithSelector(
+                FundGovernance.initialize.selector,
+                address(factory),
+                VOTING_PERIOD,
+                QUORUM_PERCENTAGE,
+                PROPOSAL_THRESHOLD
+            )
         );
         FundGovernance governance = FundGovernance(address(govProxy));
 
@@ -53,14 +59,19 @@ contract DeployScript is Script {
 
         vm.writeFile(
             "deployments/base-sepolia.json",
-            string(abi.encodePacked(
-                '{"network":"base-sepolia","factory":"', vm.toString(address(factory)),
-                '","governance":"', vm.toString(address(governance)),
-                '","initialFund":"', vm.toString(fundAddress), '"}'
-            ))
+            string(
+                abi.encodePacked(
+                    '{"network":"base-sepolia","factory":"',
+                    vm.toString(address(factory)),
+                    '","governance":"',
+                    vm.toString(address(governance)),
+                    '","initialFund":"',
+                    vm.toString(fundAddress),
+                    '"}'
+                )
+            )
         );
 
         vm.stopBroadcast();
     }
 }
-
