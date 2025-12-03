@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IChainlinkAggregator.sol";
@@ -23,7 +24,7 @@ using SafeERC20 for IERC20;
 /// 4. User receives leveraged token shares
 /// 5. Daily rebalance adjusts borrowed amount to maintain 2x
 /// 6. On redemption: sell WBTC, repay loan, return USDC +/- P&L
-contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
+contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @notice The LP vault we borrow from
@@ -106,6 +107,7 @@ contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeab
         __ERC20_init(_name, _symbol);
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
+        __Pausable_init();
 
         lpVault = LPVault(_lpVault);
         collateralToken = IERC20(_collateralToken);
@@ -131,7 +133,7 @@ contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeab
     /// @notice Mint leveraged tokens by depositing collateral
     /// @param collateralAmount Amount of collateral (USDC) to deposit
     /// @return shares Amount of leveraged token shares minted
-    function mint(uint256 collateralAmount) external nonReentrant returns (uint256 shares) {
+    function mint(uint256 collateralAmount) external nonReentrant whenNotPaused returns (uint256 shares) {
         require(collateralAmount > 0, "Zero amount");
 
         // Transfer collateral from user
@@ -166,7 +168,7 @@ contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeab
     /// @param shares Amount of shares to redeem
     /// @return collateralReturned Amount of collateral returned
     /// @dev Uses NAV-based calculation: value = shares * currentNAV / PRECISION
-    function redeem(uint256 shares) external nonReentrant returns (uint256 collateralReturned) {
+    function redeem(uint256 shares) external nonReentrant whenNotPaused returns (uint256 collateralReturned) {
         require(shares > 0, "Zero shares");
         require(balanceOf(msg.sender) >= shares, "Insufficient balance");
 
@@ -214,7 +216,7 @@ contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeab
 
     /// @notice Daily rebalance to maintain leverage ratio
     /// @dev Adjusts borrowed amount based on price changes
-    function rebalance() external nonReentrant {
+    function rebalance() external nonReentrant whenNotPaused {
         require(
             block.timestamp >= lastRebalanceTime + MIN_REBALANCE_INTERVAL,
             "Too soon to rebalance"
@@ -353,6 +355,16 @@ contract Leveraged2xToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeab
         require(_oracle != address(0), "Invalid oracle");
         oracle = IChainlinkAggregator(_oracle);
         oracleDecimals = oracle.decimals();
+    }
+
+    /// @notice Pause all token operations
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpause all token operations
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /// @notice UUPS upgrade authorization

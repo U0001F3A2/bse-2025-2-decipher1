@@ -93,7 +93,7 @@ make collect-fees
 
 ### Development
 ```bash
-make test             # Run all tests (36 tests)
+make test             # Run all tests (39 tests)
 make test-verbose     # Detailed test output
 make test-gas         # Gas usage report
 make format           # Format code
@@ -162,10 +162,10 @@ interest = borrowedAmount × interestRate × timeElapsed / year
 
 ## Testing
 
-All 36 tests passing:
+All 39 tests passing:
 - **9 IndexFund tests**: deposits, withdrawals, fees, allocations
 - **7 FundGovernance tests**: proposals, voting, execution
-- **20 LeveragedETF tests**: LP vault, leveraged tokens, rebalancing
+- **23 LeveragedETF tests**: LP vault, leveraged tokens, rebalancing, pause
 
 ```bash
 make test              # Quick test
@@ -175,12 +175,25 @@ forge test -vvvv       # Full traces
 
 ## Security Features
 
+- **Pausable**: Emergency pause for all critical operations
 - **Reentrancy Guards**: All state-changing functions protected
 - **Access Control**: Owner-only for critical operations
 - **Safe ERC20**: OpenZeppelin SafeERC20 for all transfers
 - **Input Validation**: All public function parameters validated
 - **Oracle Staleness Check**: Rejects stale price data
 - **Utilization Limits**: LP vault capped at 90% utilization
+
+### Emergency Pause
+Both `LPVault` and `Leveraged2xToken` can be paused by the owner in case of emergencies:
+```solidity
+// Pause all operations
+vault.pause();
+leveragedToken.pause();
+
+// Resume operations
+vault.unpause();
+leveragedToken.unpause();
+```
 
 ## Parameters
 

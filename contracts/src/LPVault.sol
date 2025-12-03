@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -16,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// 2. Leveraged tokens borrow WBTC to provide user exposure
 /// 3. Borrowers pay interest, which accrues to LP shares
 /// 4. LPs can withdraw anytime (subject to utilization)
-contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @notice Total tokens currently borrowed by leveraged products
@@ -71,6 +72,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         __ERC20_init(_name, _symbol);
         __ERC4626_init(IERC20(_asset));
         __Ownable_init(msg.sender);
+        __Pausable_init();
 
         interestRateBps = _interestRateBps;
         maxUtilizationBps = 9000; // 90% max utilization
@@ -100,20 +102,20 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @notice Override deposit to accrue interest first
-    function deposit(uint256 assets, address receiver) public override returns (uint256) {
+    function deposit(uint256 assets, address receiver) public override whenNotPaused returns (uint256) {
         _accrueInterest();
         return super.deposit(assets, receiver);
     }
 
     /// @notice Override withdraw to accrue interest and check liquidity
-    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address owner) public override whenNotPaused returns (uint256) {
         _accrueInterest();
         require(assets <= availableLiquidity(), "Insufficient liquidity");
         return super.withdraw(assets, receiver, owner);
     }
 
     /// @notice Override redeem to accrue interest and check liquidity
-    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256) {
+    function redeem(uint256 shares, address receiver, address owner) public override whenNotPaused returns (uint256) {
         _accrueInterest();
         uint256 assets = previewRedeem(shares);
         require(assets <= availableLiquidity(), "Insufficient liquidity");
@@ -126,7 +128,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Borrow tokens from the vault
     /// @param amount Amount of tokens to borrow
-    function borrow(uint256 amount) external onlyAuthorizedBorrower {
+    function borrow(uint256 amount) external onlyAuthorizedBorrower whenNotPaused {
         _accrueInterest();
 
         require(amount > 0, "Zero amount");
@@ -147,7 +149,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Repay borrowed tokens (principal only, interest accrues to LP shares)
     /// @param principalAmount Principal amount being repaid
     /// @dev Interest is not collected per-repayment; it accrues to totalAssets for LP benefit
-    function repay(uint256 principalAmount) external onlyAuthorizedBorrower {
+    function repay(uint256 principalAmount) external onlyAuthorizedBorrower whenNotPaused {
         _accrueInterest();
 
         require(principalAmount > 0, "Zero amount");
@@ -166,7 +168,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Repay with explicit interest payment
     /// @param principalAmount Principal to repay
     /// @param interestAmount Interest to pay
-    function repayWithInterest(uint256 principalAmount, uint256 interestAmount) external onlyAuthorizedBorrower {
+    function repayWithInterest(uint256 principalAmount, uint256 interestAmount) external onlyAuthorizedBorrower whenNotPaused {
         _accrueInterest();
 
         require(principalAmount > 0, "Zero amount");
@@ -252,6 +254,16 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     function setMaxUtilization(uint256 _maxUtilizationBps) external onlyOwner {
         require(_maxUtilizationBps <= BASIS_POINTS, "Invalid utilization");
         maxUtilizationBps = _maxUtilizationBps;
+    }
+
+    /// @notice Pause all vault operations
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpause all vault operations
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     modifier onlyAuthorizedBorrower() {

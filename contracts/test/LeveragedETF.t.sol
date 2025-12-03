@@ -377,4 +377,80 @@ contract LeveragedETFTest is Test {
         vm.expectRevert("Invalid leverage");
         leveragedToken.setLeverageRatio(5000); // 0.5x is too low
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //                    PAUSE TESTS
+    // ═══════════════════════════════════════════════════════════════
+
+    function testVaultPause() public {
+        // LP deposits first
+        vm.prank(lp1);
+        vault.deposit(10 ether, lp1);
+
+        // Pause the vault
+        vault.pause();
+
+        // Deposit should fail when paused
+        vm.prank(lp1);
+        vm.expectRevert();
+        vault.deposit(1 ether, lp1);
+
+        // Withdraw should fail when paused
+        vm.prank(lp1);
+        vm.expectRevert();
+        vault.withdraw(1 ether, lp1, lp1);
+
+        // Unpause
+        vault.unpause();
+
+        // Now operations should work
+        vm.prank(lp1);
+        vault.deposit(1 ether, lp1);
+    }
+
+    function testLeveragedTokenPause() public {
+        // Setup: LP deposits
+        vm.prank(lp1);
+        vault.deposit(50 ether, lp1);
+
+        // Trader mints
+        vm.prank(trader1);
+        uint256 shares = leveragedToken.mint(1000 * 1e6);
+
+        // Pause the leveraged token
+        leveragedToken.pause();
+
+        // Mint should fail when paused
+        vm.prank(trader2);
+        vm.expectRevert();
+        leveragedToken.mint(1000 * 1e6);
+
+        // Redeem should fail when paused
+        vm.prank(trader1);
+        vm.expectRevert();
+        leveragedToken.redeem(shares);
+
+        // Rebalance should fail when paused
+        vm.warp(block.timestamp + 21 hours);
+        vm.expectRevert();
+        leveragedToken.rebalance();
+
+        // Unpause
+        leveragedToken.unpause();
+
+        // Now operations should work
+        vm.prank(trader2);
+        leveragedToken.mint(1000 * 1e6);
+    }
+
+    function testOnlyOwnerCanPause() public {
+        // Non-owner should not be able to pause
+        vm.prank(trader1);
+        vm.expectRevert();
+        vault.pause();
+
+        vm.prank(trader1);
+        vm.expectRevert();
+        leveragedToken.pause();
+    }
 }
