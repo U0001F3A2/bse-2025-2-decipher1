@@ -135,7 +135,11 @@ ETHERSCAN_API_KEY=your_api_key
 - **USDC**: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
 - **ETH/USD Oracle**: `0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1`
 
-Deployed addresses: `contracts/deployments/base-sepolia.json`
+### Leveraged ETF (ETH 2x Daily Long)
+- **LP Vault (lpWETH)**: `0x06d5a11863262986dc18EA57F7620911cB0b82F1`
+- **Leveraged Token (ETH2X)**: `0xe96a9fc721bBF100c5b528707e787C90ecE79cfE`
+
+Deployed addresses: `contracts/deployments/base-sepolia.json`, `contracts/deployments/leveraged-eth2x.json`
 
 ## Key Mechanisms
 

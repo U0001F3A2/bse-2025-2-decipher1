@@ -25,10 +25,8 @@ contract DeployLeveragedScript is Script {
     uint256 constant INTEREST_RATE = 500; // 5% APY for LP vault
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
-
-        vm.startBroadcast(deployerPrivateKey);
+        // Use the private key passed via --private-key flag
+        vm.startBroadcast();
 
         // 1. Deploy LP Vault Implementation
         LPVault vaultImpl = new LPVault();
@@ -64,9 +62,7 @@ contract DeployLeveragedScript is Script {
         // 5. Authorize leveraged token to borrow from vault
         vault.authorizeBorrower(address(leveragedToken));
 
-        // 6. Transfer ownership
-        vault.transferOwnership(deployer);
-        leveragedToken.transferOwnership(deployer);
+        // Ownership is already set to msg.sender in initialize
 
         vm.stopBroadcast();
 
