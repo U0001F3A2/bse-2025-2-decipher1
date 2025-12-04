@@ -32,6 +32,7 @@ make collect-fees
 - **LP-Backed**: LPs lend tokens, earn yield
 - **Chainlink Oracles**: Real-time price feeds
 - **Automated Rebalancing**: Maintains leverage ratio daily
+- **Pausable**: Emergency pause for all operations (owner-only)
 
 ## Architecture
 
@@ -45,7 +46,7 @@ make collect-fees
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      LEVERAGED ETF MODULE                           │
+│                  LEVERAGED ETF MODULE (Pausable)                    │
 ├─────────────────────────────────────────────────────────────────────┤
 │  LPVault          │ LPs deposit tokens (WETH), earn interest       │
 │  Leveraged2xToken │ 2x leveraged token borrowing from LP vault     │
@@ -86,8 +87,8 @@ make collect-fees
 | `IndexFund.sol` | ERC-4626 multi-token index vault |
 | `FundFactory.sol` | Factory for deploying index funds |
 | `FundGovernance.sol` | Token-weighted governance |
-| `LPVault.sol` | ERC-4626 lending vault for LPs |
-| `Leveraged2xToken.sol` | 2x leveraged token with daily rebalancing |
+| `LPVault.sol` | ERC-4626 lending vault for LPs (pausable) |
+| `Leveraged2xToken.sol` | 2x leveraged token with daily rebalancing (pausable) |
 
 ## Commands
 
@@ -198,6 +199,10 @@ leveragedToken.pause();
 vault.unpause();
 leveragedToken.unpause();
 ```
+
+**Paused operations:**
+- `LPVault`: deposit, withdraw, redeem, borrow, repay
+- `Leveraged2xToken`: mint, redeem, rebalance
 
 ## Parameters
 
