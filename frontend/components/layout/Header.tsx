@@ -28,7 +28,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
 
-        <ConnectButton />
+        <ConnectButton showBalance={false} />
       </div>
     </header>
   );
