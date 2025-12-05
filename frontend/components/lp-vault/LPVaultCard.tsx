@@ -1,0 +1,262 @@
+"use client";
+
+import { useState } from "react";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther, formatEther, parseAbi } from "viem";
+import toast from "react-hot-toast";
+import { TokenInput } from "@/components/shared/TokenInput";
+import { TransactionButton } from "@/components/shared/TransactionButton";
+import { CONTRACTS } from "@/lib/contracts";
+import { LP_VAULT_ABI, ERC20_ABI } from "@/lib/abis";
+import { useLPVaultUserPosition, formatTokenAmount } from "@/hooks";
+
+type Tab = "deposit" | "withdraw";
+
+export function LPVaultCard() {
+  const [activeTab, setActiveTab] = useState<Tab>("deposit");
+  const [amount, setAmount] = useState("");
+
+  const { address, isConnected } = useAccount();
+  const { shares, assetsValue } = useLPVaultUserPosition();
+
+  // WETH balance
+  const { data: wethBalance } = useReadContract({
+    address: CONTRACTS.WETH as `0x${string}`,
+    abi: parseAbi(ERC20_ABI),
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  // WETH allowance
+  const { data: wethAllowance, refetch: refetchAllowance } = useReadContract({
+    address: CONTRACTS.WETH as `0x${string}`,
+    abi: parseAbi(ERC20_ABI),
+    functionName: "allowance",
+    args: address ? [address, CONTRACTS.LP_VAULT as `0x${string}`] : undefined,
+    query: { enabled: !!address },
+  });
+
+  // Approve WETH
+  const {
+    writeContract: approveWeth,
+    isPending: isApproving,
+    data: approveHash,
+  } = useWriteContract();
+
+  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({
+    hash: approveHash,
+  });
+
+  // Deposit
+  const {
+    writeContract: deposit,
+    isPending: isDepositing,
+    data: depositHash,
+  } = useWriteContract();
+
+  const { isLoading: isDepositConfirming } = useWaitForTransactionReceipt({
+    hash: depositHash,
+  });
+
+  // Withdraw
+  const {
+    writeContract: withdraw,
+    isPending: isWithdrawing,
+    data: withdrawHash,
+  } = useWriteContract();
+
+  const { isLoading: isWithdrawConfirming } = useWaitForTransactionReceipt({
+    hash: withdrawHash,
+  });
+
+  const parsedAmount = amount ? parseEther(amount) : BigInt(0);
+  const needsApproval =
+    activeTab === "deposit" &&
+    wethAllowance !== undefined &&
+    parsedAmount > (wethAllowance as bigint);
+
+  const handleApprove = async () => {
+    try {
+      approveWeth({
+        address: CONTRACTS.WETH as `0x${string}`,
+        abi: parseAbi(ERC20_ABI),
+        functionName: "approve",
+        args: [CONTRACTS.LP_VAULT as `0x${string}`, parsedAmount],
+      });
+      toast.success("Approval submitted");
+      setTimeout(() => refetchAllowance(), 2000);
+    } catch (error) {
+      toast.error("Approval failed");
+      console.error(error);
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (!address || !parsedAmount) return;
+
+    try {
+      deposit({
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "deposit",
+        args: [parsedAmount, address],
+      });
+      toast.success("Deposit submitted");
+      setAmount("");
+    } catch (error) {
+      toast.error("Deposit failed");
+      console.error(error);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!address || !parsedAmount) return;
+
+    try {
+      withdraw({
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "withdraw",
+        args: [parsedAmount, address, address],
+      });
+      toast.success("Withdrawal submitted");
+      setAmount("");
+    } catch (error) {
+      toast.error("Withdrawal failed");
+      console.error(error);
+    }
+  };
+
+  const handleMaxClick = () => {
+    if (activeTab === "deposit" && wethBalance) {
+      setAmount(formatEther(wethBalance as bigint));
+    } else if (activeTab === "withdraw" && assetsValue) {
+      setAmount(formatEther(assetsValue));
+    }
+  };
+
+  const isLoading =
+    isApproving ||
+    isApproveConfirming ||
+    isDepositing ||
+    isDepositConfirming ||
+    isWithdrawing ||
+    isWithdrawConfirming;
+
+  return (
+    <div className="glass-card p-6">
+      {/* Tabs */}
+      <div className="mb-6 flex gap-2 rounded-lg bg-white/5 p-1">
+        <button
+          onClick={() => {
+            setActiveTab("deposit");
+            setAmount("");
+          }}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
+            activeTab === "deposit"
+              ? "bg-accent-purple text-white"
+              : "text-foreground-muted hover:text-white"
+          }`}
+        >
+          Deposit
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("withdraw");
+            setAmount("");
+          }}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
+            activeTab === "withdraw"
+              ? "bg-accent-purple text-white"
+              : "text-foreground-muted hover:text-white"
+          }`}
+        >
+          Withdraw
+        </button>
+      </div>
+
+      {/* Input */}
+      <TokenInput
+        value={amount}
+        onChange={setAmount}
+        symbol="WETH"
+        balance={
+          activeTab === "deposit"
+            ? formatTokenAmount(wethBalance as bigint | undefined)
+            : formatTokenAmount(assetsValue)
+        }
+        onMax={handleMaxClick}
+        disabled={!isConnected}
+      />
+
+      {/* Preview */}
+      {amount && parseFloat(amount) > 0 && (
+        <div className="mt-4 rounded-lg bg-white/5 p-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-foreground-muted">You will receive</span>
+            <span>~{amount} {activeTab === "deposit" ? "lpWETH" : "WETH"}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Action Button */}
+      <div className="mt-6">
+        {!isConnected ? (
+          <div className="rounded-xl bg-white/5 p-4 text-center text-foreground-muted">
+            Connect wallet to continue
+          </div>
+        ) : activeTab === "deposit" ? (
+          needsApproval ? (
+            <TransactionButton
+              onClick={handleApprove}
+              isLoading={isApproving || isApproveConfirming}
+              loadingText="Approving..."
+              disabled={!amount || parseFloat(amount) <= 0}
+            >
+              Approve WETH
+            </TransactionButton>
+          ) : (
+            <TransactionButton
+              onClick={handleDeposit}
+              isLoading={isDepositing || isDepositConfirming}
+              loadingText="Depositing..."
+              disabled={!amount || parseFloat(amount) <= 0}
+            >
+              Deposit
+            </TransactionButton>
+          )
+        ) : (
+          <TransactionButton
+            onClick={handleWithdraw}
+            isLoading={isWithdrawing || isWithdrawConfirming}
+            loadingText="Withdrawing..."
+            disabled={!amount || parseFloat(amount) <= 0}
+            variant="secondary"
+          >
+            Withdraw
+          </TransactionButton>
+        )}
+      </div>
+
+      {/* User Position */}
+      {isConnected && shares && shares > BigInt(0) && (
+        <div className="mt-6 border-t border-white/10 pt-6">
+          <h4 className="mb-3 text-sm font-medium text-foreground-muted">
+            Your Position
+          </h4>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground-muted">Shares</span>
+              <span>{formatTokenAmount(shares)} lpWETH</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground-muted">Value</span>
+              <span>{formatTokenAmount(assetsValue)} WETH</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

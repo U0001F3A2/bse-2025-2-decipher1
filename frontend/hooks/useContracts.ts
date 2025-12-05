@@ -1,0 +1,289 @@
+"use client";
+
+import { useReadContract, useReadContracts, useAccount } from "wagmi";
+import { formatEther, formatUnits, parseAbi } from "viem";
+import { CONTRACTS } from "@/lib/contracts";
+import {
+  LP_VAULT_ABI,
+  LEVERAGED_2X_TOKEN_ABI,
+  INDEX_FUND_ABI,
+  ERC20_ABI,
+} from "@/lib/abis";
+
+// LP Vault hooks
+export function useLPVaultStats() {
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "totalAssets",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "totalSupply",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "totalBorrowed",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "availableLiquidity",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "utilizationRate",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "interestRate",
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "paused",
+      },
+    ],
+  });
+
+  return {
+    totalAssets: data?.[0]?.result as bigint | undefined,
+    totalSupply: data?.[1]?.result as bigint | undefined,
+    totalBorrowed: data?.[2]?.result as bigint | undefined,
+    availableLiquidity: data?.[3]?.result as bigint | undefined,
+    utilizationRate: data?.[4]?.result as bigint | undefined,
+    interestRate: data?.[5]?.result as bigint | undefined,
+    paused: data?.[6]?.result as boolean | undefined,
+    isLoading,
+    error,
+  };
+}
+
+export function useLPVaultUserPosition() {
+  const { address } = useAccount();
+
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+      },
+      {
+        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        abi: parseAbi(LP_VAULT_ABI),
+        functionName: "convertToAssets",
+        args: [BigInt(1e18)], // 1 share
+      },
+    ],
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  const shares = data?.[0]?.result as bigint | undefined;
+  const sharePrice = data?.[1]?.result as bigint | undefined;
+  const assetsValue =
+    shares && sharePrice ? (shares * sharePrice) / BigInt(1e18) : undefined;
+
+  return {
+    shares,
+    sharePrice,
+    assetsValue,
+    isLoading,
+    error,
+  };
+}
+
+// ETH2X hooks
+export function useETH2XStats() {
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.ETH2X as `0x${string}`,
+        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        functionName: "totalSupply",
+      },
+      {
+        address: CONTRACTS.ETH2X as `0x${string}`,
+        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        functionName: "getCurrentNAV",
+      },
+      {
+        address: CONTRACTS.ETH2X as `0x${string}`,
+        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        functionName: "getLeverageRatio",
+      },
+      {
+        address: CONTRACTS.ETH2X as `0x${string}`,
+        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        functionName: "needsRebalance",
+      },
+      {
+        address: CONTRACTS.ETH2X as `0x${string}`,
+        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        functionName: "paused",
+      },
+    ],
+  });
+
+  return {
+    totalSupply: data?.[0]?.result as bigint | undefined,
+    currentNAV: data?.[1]?.result as bigint | undefined,
+    leverageRatio: data?.[2]?.result as bigint | undefined,
+    needsRebalance: data?.[3]?.result as boolean | undefined,
+    paused: data?.[4]?.result as boolean | undefined,
+    isLoading,
+    error,
+  };
+}
+
+export function useETH2XUserPosition() {
+  const { address } = useAccount();
+
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACTS.ETH2X as `0x${string}`,
+    abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  return {
+    balance: data as bigint | undefined,
+    isLoading,
+    error,
+  };
+}
+
+// Index Fund hooks
+export function useIndexFundStats() {
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "totalAssets",
+      },
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "totalSupply",
+      },
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "managementFeeRate",
+      },
+    ],
+  });
+
+  return {
+    totalAssets: data?.[0]?.result as bigint | undefined,
+    totalSupply: data?.[1]?.result as bigint | undefined,
+    managementFeeRate: data?.[2]?.result as bigint | undefined,
+    isLoading,
+    error,
+  };
+}
+
+export function useIndexFundUserPosition() {
+  const { address } = useAccount();
+
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+      },
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "convertToAssets",
+        args: [BigInt(1e18)], // 1 share
+      },
+    ],
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  const shares = data?.[0]?.result as bigint | undefined;
+  const sharePrice = data?.[1]?.result as bigint | undefined;
+  const assetsValue =
+    shares && sharePrice ? (shares * sharePrice) / BigInt(1e18) : undefined;
+
+  return {
+    shares,
+    sharePrice,
+    assetsValue,
+    isLoading,
+    error,
+  };
+}
+
+// ETH Price from Oracle
+export function useETHPrice() {
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACTS.ETH_USD_ORACLE as `0x${string}`,
+    abi: parseAbi([
+      "function latestAnswer() view returns (int256)",
+      "function decimals() view returns (uint8)",
+    ]),
+    functionName: "latestAnswer",
+  });
+
+  // Chainlink price feeds typically have 8 decimals
+  const price = data ? Number(data) / 1e8 : undefined;
+
+  return {
+    price,
+    isLoading,
+    error,
+  };
+}
+
+// Format utilities
+export function formatTokenAmount(
+  amount: bigint | undefined,
+  decimals: number = 18,
+  displayDecimals: number = 4
+): string {
+  if (!amount) return "0";
+  const formatted = formatUnits(amount, decimals);
+  const num = parseFloat(formatted);
+  return num.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: displayDecimals,
+  });
+}
+
+export function formatUSD(amount: number | undefined): string {
+  if (amount === undefined) return "$0.00";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatPercent(
+  bps: bigint | undefined,
+  decimals: number = 2
+): string {
+  if (!bps) return "0%";
+  const percent = Number(bps) / 100; // assuming bps (basis points)
+  return `${percent.toFixed(decimals)}%`;
+}
