@@ -1,7 +1,6 @@
 "use client";
 
 import { useReadContracts, useAccount } from "wagmi";
-import { parseAbi } from "viem";
 import { Loader2, CheckCircle, XCircle, Clock, PlayCircle } from "lucide-react";
 import { CONTRACTS } from "@/lib/contracts";
 import { useGovernanceParams } from "@/hooks";
@@ -63,12 +62,36 @@ export function ProposalList() {
     ? Array.from({ length: Number(proposalCount) }, (_, i) => BigInt(i))
     : [];
 
+  const getProposalAbi = [
+    {
+      name: "getProposal",
+      type: "function",
+      stateMutability: "view",
+      inputs: [{ name: "proposalId", type: "uint256" }],
+      outputs: [
+        {
+          name: "",
+          type: "tuple",
+          components: [
+            { name: "id", type: "uint256" },
+            { name: "description", type: "string" },
+            { name: "proposer", type: "address" },
+            { name: "forVotes", type: "uint256" },
+            { name: "againstVotes", type: "uint256" },
+            { name: "startTime", type: "uint256" },
+            { name: "endTime", type: "uint256" },
+            { name: "executed", type: "bool" },
+            { name: "canceled", type: "bool" },
+          ],
+        },
+      ],
+    },
+  ] as const;
+
   const proposalContracts = proposalIds.flatMap((id) => [
     {
       address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
-      abi: parseAbi([
-        "function getProposal(uint256 proposalId) view returns (tuple(uint256 id, string description, address proposer, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled))",
-      ]),
+      abi: getProposalAbi,
       functionName: "getProposal" as const,
       args: [id],
     },

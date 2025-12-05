@@ -8,7 +8,7 @@ import { Loader2, Wallet, LogOut, AlertTriangle, X, ChevronRight } from "lucide-
 export function ConnectButton() {
   const [showModal, setShowModal] = useState(false);
   const { address, isConnected, connector: activeConnector } = useAccount();
-  const { connect, connectors, isPending, pendingConnector } = useConnect();
+  const { connect, connectors, isPending, variables } = useConnect();
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -151,7 +151,8 @@ export function ConnectButton() {
             <div className="p-4">
               <div className="space-y-2">
                 {connectors.map((connector) => {
-                  const isLoading = isPending && pendingConnector?.id === connector.id;
+                  const pendingConnector = variables?.connector;
+                  const isLoading = isPending && pendingConnector && 'uid' in pendingConnector && pendingConnector.uid === connector.uid;
 
                   return (
                     <button
