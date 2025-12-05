@@ -290,9 +290,19 @@ export function formatTokenAmount(
   decimals: number = 18,
   displayDecimals: number = 4
 ): string {
-  if (!amount) return "0";
+  if (!amount || amount === BigInt(0)) return "0";
   const formatted = formatUnits(amount, decimals);
   const num = parseFloat(formatted);
+
+  // For very small amounts, show more decimals to ensure visibility
+  if (num > 0 && num < 0.0001) {
+    // Find the first non-zero decimal place and show a few more
+    const scientificNotation = num.toExponential();
+    const exponent = parseInt(scientificNotation.split('e')[1]);
+    const neededDecimals = Math.min(Math.abs(exponent) + 2, 18);
+    return num.toFixed(neededDecimals);
+  }
+
   return num.toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: displayDecimals,
@@ -316,4 +326,81 @@ export function formatPercent(
   if (!bps) return "0%";
   const percent = Number(bps) / 100; // assuming bps (basis points)
   return `${percent.toFixed(decimals)}%`;
+}
+
+// Governance hooks
+export function useGovernanceParams() {
+  const { data, isLoading, error } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        abi: parseAbi([
+          "function votingPeriod() view returns (uint256)",
+          "function quorumPercent() view returns (uint256)",
+          "function proposalThreshold() view returns (uint256)",
+          "function getProposalCount() view returns (uint256)",
+        ]),
+        functionName: "votingPeriod",
+      },
+      {
+        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        abi: parseAbi([
+          "function votingPeriod() view returns (uint256)",
+          "function quorumPercent() view returns (uint256)",
+          "function proposalThreshold() view returns (uint256)",
+          "function getProposalCount() view returns (uint256)",
+        ]),
+        functionName: "quorumPercent",
+      },
+      {
+        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        abi: parseAbi([
+          "function votingPeriod() view returns (uint256)",
+          "function quorumPercent() view returns (uint256)",
+          "function proposalThreshold() view returns (uint256)",
+          "function getProposalCount() view returns (uint256)",
+        ]),
+        functionName: "proposalThreshold",
+      },
+      {
+        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        abi: parseAbi([
+          "function votingPeriod() view returns (uint256)",
+          "function quorumPercent() view returns (uint256)",
+          "function proposalThreshold() view returns (uint256)",
+          "function getProposalCount() view returns (uint256)",
+        ]),
+        functionName: "getProposalCount",
+      },
+    ],
+  });
+
+  return {
+    votingPeriod: data?.[0]?.result as bigint | undefined,
+    quorumPercent: data?.[1]?.result as bigint | undefined,
+    proposalThreshold: data?.[2]?.result as bigint | undefined,
+    proposalCount: data?.[3]?.result as bigint | undefined,
+    isLoading,
+    error,
+  };
+}
+
+export function useVotingPower() {
+  const { address } = useAccount();
+
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+    abi: parseAbi([
+      "function getVotingPower(address account) view returns (uint256)",
+    ]),
+    functionName: "getVotingPower",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  return {
+    votingPower: data as bigint | undefined,
+    isLoading,
+    error,
+  };
 }

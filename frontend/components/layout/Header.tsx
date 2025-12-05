@@ -28,14 +28,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
 
-        <ConnectButton
-          chainStatus="icon"
-          showBalance={false}
-          accountStatus={{
-            smallScreen: "avatar",
-            largeScreen: "full",
-          }}
-        />
+        <ConnectButton />
       </div>
     </header>
   );

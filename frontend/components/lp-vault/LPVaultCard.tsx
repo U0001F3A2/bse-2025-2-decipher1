@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther, formatEther, parseAbi } from "viem";
 import toast from "react-hot-toast";
@@ -8,7 +8,7 @@ import { TokenInput } from "@/components/shared/TokenInput";
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { CONTRACTS } from "@/lib/contracts";
 import { LP_VAULT_ABI, ERC20_ABI } from "@/lib/abis";
-import { useLPVaultUserPosition, formatTokenAmount } from "@/hooks";
+import { useLPVaultUserPosition, formatTokenAmount, parseError } from "@/hooks";
 
 type Tab = "deposit" | "withdraw";
 
@@ -42,9 +42,10 @@ export function LPVaultCard() {
     writeContract: approveWeth,
     isPending: isApproving,
     data: approveHash,
+    error: approveError,
   } = useWriteContract();
 
-  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess, error: approveReceiptError } = useWaitForTransactionReceipt({
     hash: approveHash,
   });
 
@@ -53,9 +54,10 @@ export function LPVaultCard() {
     writeContract: deposit,
     isPending: isDepositing,
     data: depositHash,
+    error: depositError,
   } = useWriteContract();
 
-  const { isLoading: isDepositConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isDepositConfirming, isSuccess: isDepositSuccess, error: depositReceiptError } = useWaitForTransactionReceipt({
     hash: depositHash,
   });
 
@@ -64,11 +66,71 @@ export function LPVaultCard() {
     writeContract: withdraw,
     isPending: isWithdrawing,
     data: withdrawHash,
+    error: withdrawError,
   } = useWriteContract();
 
-  const { isLoading: isWithdrawConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isWithdrawConfirming, isSuccess: isWithdrawSuccess, error: withdrawReceiptError } = useWaitForTransactionReceipt({
     hash: withdrawHash,
   });
+
+  // Handle errors
+  useEffect(() => {
+    if (approveError) {
+      toast.error(parseError(approveError), { duration: 5000 });
+    }
+  }, [approveError]);
+
+  useEffect(() => {
+    if (approveReceiptError) {
+      toast.error(parseError(approveReceiptError), { duration: 5000 });
+    }
+  }, [approveReceiptError]);
+
+  useEffect(() => {
+    if (depositError) {
+      toast.error(parseError(depositError), { duration: 5000 });
+    }
+  }, [depositError]);
+
+  useEffect(() => {
+    if (depositReceiptError) {
+      toast.error(parseError(depositReceiptError), { duration: 5000 });
+    }
+  }, [depositReceiptError]);
+
+  useEffect(() => {
+    if (withdrawError) {
+      toast.error(parseError(withdrawError), { duration: 5000 });
+    }
+  }, [withdrawError]);
+
+  useEffect(() => {
+    if (withdrawReceiptError) {
+      toast.error(parseError(withdrawReceiptError), { duration: 5000 });
+    }
+  }, [withdrawReceiptError]);
+
+  // Handle success
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success("Approval confirmed!");
+      refetchAllowance();
+    }
+  }, [isApproveSuccess, refetchAllowance]);
+
+  useEffect(() => {
+    if (isDepositSuccess) {
+      toast.success("Deposit confirmed!");
+      setAmount("");
+    }
+  }, [isDepositSuccess]);
+
+  useEffect(() => {
+    if (isWithdrawSuccess) {
+      toast.success("Withdrawal confirmed!");
+      setAmount("");
+    }
+  }, [isWithdrawSuccess]);
 
   const parsedAmount = amount ? parseEther(amount) : BigInt(0);
   const needsApproval =
@@ -76,56 +138,35 @@ export function LPVaultCard() {
     wethAllowance !== undefined &&
     parsedAmount > (wethAllowance as bigint);
 
-  const handleApprove = async () => {
-    try {
-      approveWeth({
-        address: CONTRACTS.WETH as `0x${string}`,
-        abi: parseAbi(ERC20_ABI),
-        functionName: "approve",
-        args: [CONTRACTS.LP_VAULT as `0x${string}`, parsedAmount],
-      });
-      toast.success("Approval submitted");
-      setTimeout(() => refetchAllowance(), 2000);
-    } catch (error) {
-      toast.error("Approval failed");
-      console.error(error);
-    }
+  const handleApprove = () => {
+    approveWeth({
+      address: CONTRACTS.WETH as `0x${string}`,
+      abi: parseAbi(ERC20_ABI),
+      functionName: "approve",
+      args: [CONTRACTS.LP_VAULT as `0x${string}`, parsedAmount],
+    });
   };
 
-  const handleDeposit = async () => {
+  const handleDeposit = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      deposit({
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
-        abi: parseAbi(LP_VAULT_ABI),
-        functionName: "deposit",
-        args: [parsedAmount, address],
-      });
-      toast.success("Deposit submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Deposit failed");
-      console.error(error);
-    }
+    deposit({
+      address: CONTRACTS.LP_VAULT as `0x${string}`,
+      abi: parseAbi(LP_VAULT_ABI),
+      functionName: "deposit",
+      args: [parsedAmount, address],
+    });
   };
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      withdraw({
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
-        abi: parseAbi(LP_VAULT_ABI),
-        functionName: "withdraw",
-        args: [parsedAmount, address, address],
-      });
-      toast.success("Withdrawal submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Withdrawal failed");
-      console.error(error);
-    }
+    withdraw({
+      address: CONTRACTS.LP_VAULT as `0x${string}`,
+      abi: parseAbi(LP_VAULT_ABI),
+      functionName: "withdraw",
+      args: [parsedAmount, address, address],
+    });
   };
 
   const handleMaxClick = () => {

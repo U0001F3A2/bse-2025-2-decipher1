@@ -7,7 +7,11 @@ export {
   useIndexFundAllocations,
   useIndexFundUserPosition,
   useETHPrice,
+  useGovernanceParams,
+  useVotingPower,
   formatTokenAmount,
   formatUSD,
   formatPercent,
 } from "./useContracts";
+
+export { useTransactionWithToast, parseError } from "./useTransactionWithToast";

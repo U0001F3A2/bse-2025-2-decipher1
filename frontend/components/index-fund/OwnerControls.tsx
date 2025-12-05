@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseAbi } from "viem";
 import toast from "react-hot-toast";
@@ -7,7 +8,7 @@ import { Settings, RefreshCw, Coins } from "lucide-react";
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { CONTRACTS } from "@/lib/contracts";
 import { INDEX_FUND_ABI } from "@/lib/abis";
-import { useIndexFundStats, formatTokenAmount } from "@/hooks";
+import { useIndexFundStats, formatTokenAmount, parseError } from "@/hooks";
 
 export function OwnerControls() {
   const { address } = useAccount();
@@ -27,9 +28,10 @@ export function OwnerControls() {
     writeContract: collectFees,
     isPending: isCollecting,
     data: collectHash,
+    error: collectError,
   } = useWriteContract();
 
-  const { isLoading: isCollectConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isCollectConfirming, isSuccess: isCollectSuccess, error: collectReceiptError } = useWaitForTransactionReceipt({
     hash: collectHash,
   });
 
@@ -38,38 +40,65 @@ export function OwnerControls() {
     writeContract: rebalance,
     isPending: isRebalancing,
     data: rebalanceHash,
+    error: rebalanceError,
   } = useWriteContract();
 
-  const { isLoading: isRebalanceConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isRebalanceConfirming, isSuccess: isRebalanceSuccess, error: rebalanceReceiptError } = useWaitForTransactionReceipt({
     hash: rebalanceHash,
   });
 
-  const handleCollectFees = async () => {
-    try {
-      collectFees({
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
-        abi: parseAbi(INDEX_FUND_ABI),
-        functionName: "collectFees",
-      });
-      toast.success("Fee collection submitted");
-    } catch (error) {
-      toast.error("Fee collection failed");
-      console.error(error);
+  // Handle errors
+  useEffect(() => {
+    if (collectError) {
+      toast.error(parseError(collectError), { duration: 5000 });
     }
+  }, [collectError]);
+
+  useEffect(() => {
+    if (collectReceiptError) {
+      toast.error(parseError(collectReceiptError), { duration: 5000 });
+    }
+  }, [collectReceiptError]);
+
+  useEffect(() => {
+    if (rebalanceError) {
+      toast.error(parseError(rebalanceError), { duration: 5000 });
+    }
+  }, [rebalanceError]);
+
+  useEffect(() => {
+    if (rebalanceReceiptError) {
+      toast.error(parseError(rebalanceReceiptError), { duration: 5000 });
+    }
+  }, [rebalanceReceiptError]);
+
+  // Handle success
+  useEffect(() => {
+    if (isCollectSuccess) {
+      toast.success("Fees collected successfully!");
+    }
+  }, [isCollectSuccess]);
+
+  useEffect(() => {
+    if (isRebalanceSuccess) {
+      toast.success("Rebalance completed!");
+    }
+  }, [isRebalanceSuccess]);
+
+  const handleCollectFees = () => {
+    collectFees({
+      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      abi: parseAbi(INDEX_FUND_ABI),
+      functionName: "collectFees",
+    });
   };
 
-  const handleRebalance = async () => {
-    try {
-      rebalance({
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
-        abi: parseAbi(INDEX_FUND_ABI),
-        functionName: "rebalance",
-      });
-      toast.success("Rebalance submitted");
-    } catch (error) {
-      toast.error("Rebalance failed");
-      console.error(error);
-    }
+  const handleRebalance = () => {
+    rebalance({
+      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      abi: parseAbi(INDEX_FUND_ABI),
+      functionName: "rebalance",
+    });
   };
 
   if (!isOwner) {

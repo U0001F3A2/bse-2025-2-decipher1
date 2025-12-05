@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useAccount,
   useReadContract,
@@ -13,7 +13,7 @@ import { TokenInput } from "@/components/shared/TokenInput";
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { CONTRACTS } from "@/lib/contracts";
 import { LEVERAGED_2X_TOKEN_ABI, ERC20_ABI } from "@/lib/abis";
-import { useETH2XUserPosition, useETH2XStats, formatTokenAmount } from "@/hooks";
+import { useETH2XUserPosition, useETH2XStats, formatTokenAmount, parseError } from "@/hooks";
 
 type Tab = "mint" | "redeem";
 
@@ -48,9 +48,10 @@ export function MintRedeemCard() {
     writeContract: approveUsdc,
     isPending: isApproving,
     data: approveHash,
+    error: approveError,
   } = useWriteContract();
 
-  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess, error: approveReceiptError } = useWaitForTransactionReceipt({
     hash: approveHash,
   });
 
@@ -59,9 +60,10 @@ export function MintRedeemCard() {
     writeContract: mint,
     isPending: isMinting,
     data: mintHash,
+    error: mintError,
   } = useWriteContract();
 
-  const { isLoading: isMintConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isMintConfirming, isSuccess: isMintSuccess, error: mintReceiptError } = useWaitForTransactionReceipt({
     hash: mintHash,
   });
 
@@ -70,11 +72,71 @@ export function MintRedeemCard() {
     writeContract: redeem,
     isPending: isRedeeming,
     data: redeemHash,
+    error: redeemError,
   } = useWriteContract();
 
-  const { isLoading: isRedeemConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isRedeemConfirming, isSuccess: isRedeemSuccess, error: redeemReceiptError } = useWaitForTransactionReceipt({
     hash: redeemHash,
   });
+
+  // Handle errors
+  useEffect(() => {
+    if (approveError) {
+      toast.error(parseError(approveError), { duration: 5000 });
+    }
+  }, [approveError]);
+
+  useEffect(() => {
+    if (approveReceiptError) {
+      toast.error(parseError(approveReceiptError), { duration: 5000 });
+    }
+  }, [approveReceiptError]);
+
+  useEffect(() => {
+    if (mintError) {
+      toast.error(parseError(mintError), { duration: 5000 });
+    }
+  }, [mintError]);
+
+  useEffect(() => {
+    if (mintReceiptError) {
+      toast.error(parseError(mintReceiptError), { duration: 5000 });
+    }
+  }, [mintReceiptError]);
+
+  useEffect(() => {
+    if (redeemError) {
+      toast.error(parseError(redeemError), { duration: 5000 });
+    }
+  }, [redeemError]);
+
+  useEffect(() => {
+    if (redeemReceiptError) {
+      toast.error(parseError(redeemReceiptError), { duration: 5000 });
+    }
+  }, [redeemReceiptError]);
+
+  // Handle success
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success("Approval confirmed!");
+      refetchAllowance();
+    }
+  }, [isApproveSuccess, refetchAllowance]);
+
+  useEffect(() => {
+    if (isMintSuccess) {
+      toast.success("Mint confirmed!");
+      setAmount("");
+    }
+  }, [isMintSuccess]);
+
+  useEffect(() => {
+    if (isRedeemSuccess) {
+      toast.success("Redeem confirmed!");
+      setAmount("");
+    }
+  }, [isRedeemSuccess]);
 
   // USDC has 6 decimals
   const parsedAmount =
@@ -103,56 +165,35 @@ export function MintRedeemCard() {
       ? (parseFloat(amount) * Number(currentNAV)) / 1e18
       : 0;
 
-  const handleApprove = async () => {
-    try {
-      approveUsdc({
-        address: CONTRACTS.USDC as `0x${string}`,
-        abi: parseAbi(ERC20_ABI),
-        functionName: "approve",
-        args: [CONTRACTS.ETH2X as `0x${string}`, parsedAmount],
-      });
-      toast.success("Approval submitted");
-      setTimeout(() => refetchAllowance(), 2000);
-    } catch (error) {
-      toast.error("Approval failed");
-      console.error(error);
-    }
+  const handleApprove = () => {
+    approveUsdc({
+      address: CONTRACTS.USDC as `0x${string}`,
+      abi: parseAbi(ERC20_ABI),
+      functionName: "approve",
+      args: [CONTRACTS.ETH2X as `0x${string}`, parsedAmount],
+    });
   };
 
-  const handleMint = async () => {
+  const handleMint = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      mint({
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-        functionName: "mint",
-        args: [parsedAmount],
-      });
-      toast.success("Mint submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Mint failed");
-      console.error(error);
-    }
+    mint({
+      address: CONTRACTS.ETH2X as `0x${string}`,
+      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      functionName: "mint",
+      args: [parsedAmount],
+    });
   };
 
-  const handleRedeem = async () => {
+  const handleRedeem = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      redeem({
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-        functionName: "redeem",
-        args: [parsedAmount],
-      });
-      toast.success("Redeem submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Redeem failed");
-      console.error(error);
-    }
+    redeem({
+      address: CONTRACTS.ETH2X as `0x${string}`,
+      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      functionName: "redeem",
+      args: [parsedAmount],
+    });
   };
 
   const handleMaxClick = () => {

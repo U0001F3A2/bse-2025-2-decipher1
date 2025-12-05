@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useAccount,
   useReadContract,
@@ -13,7 +13,7 @@ import { TokenInput } from "@/components/shared/TokenInput";
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { CONTRACTS } from "@/lib/contracts";
 import { INDEX_FUND_ABI, ERC20_ABI } from "@/lib/abis";
-import { useIndexFundUserPosition, useIndexFundStats, formatTokenAmount } from "@/hooks";
+import { useIndexFundUserPosition, useIndexFundStats, formatTokenAmount, parseError } from "@/hooks";
 
 type Tab = "deposit" | "withdraw";
 
@@ -48,9 +48,10 @@ export function DepositWithdraw() {
     writeContract: approveUsdc,
     isPending: isApproving,
     data: approveHash,
+    error: approveError,
   } = useWriteContract();
 
-  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess, error: approveReceiptError } = useWaitForTransactionReceipt({
     hash: approveHash,
   });
 
@@ -59,9 +60,10 @@ export function DepositWithdraw() {
     writeContract: deposit,
     isPending: isDepositing,
     data: depositHash,
+    error: depositError,
   } = useWriteContract();
 
-  const { isLoading: isDepositConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isDepositConfirming, isSuccess: isDepositSuccess, error: depositReceiptError } = useWaitForTransactionReceipt({
     hash: depositHash,
   });
 
@@ -70,11 +72,71 @@ export function DepositWithdraw() {
     writeContract: withdraw,
     isPending: isWithdrawing,
     data: withdrawHash,
+    error: withdrawError,
   } = useWriteContract();
 
-  const { isLoading: isWithdrawConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isWithdrawConfirming, isSuccess: isWithdrawSuccess, error: withdrawReceiptError } = useWaitForTransactionReceipt({
     hash: withdrawHash,
   });
+
+  // Handle errors
+  useEffect(() => {
+    if (approveError) {
+      toast.error(parseError(approveError), { duration: 5000 });
+    }
+  }, [approveError]);
+
+  useEffect(() => {
+    if (approveReceiptError) {
+      toast.error(parseError(approveReceiptError), { duration: 5000 });
+    }
+  }, [approveReceiptError]);
+
+  useEffect(() => {
+    if (depositError) {
+      toast.error(parseError(depositError), { duration: 5000 });
+    }
+  }, [depositError]);
+
+  useEffect(() => {
+    if (depositReceiptError) {
+      toast.error(parseError(depositReceiptError), { duration: 5000 });
+    }
+  }, [depositReceiptError]);
+
+  useEffect(() => {
+    if (withdrawError) {
+      toast.error(parseError(withdrawError), { duration: 5000 });
+    }
+  }, [withdrawError]);
+
+  useEffect(() => {
+    if (withdrawReceiptError) {
+      toast.error(parseError(withdrawReceiptError), { duration: 5000 });
+    }
+  }, [withdrawReceiptError]);
+
+  // Handle success
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success("Approval confirmed!");
+      refetchAllowance();
+    }
+  }, [isApproveSuccess, refetchAllowance]);
+
+  useEffect(() => {
+    if (isDepositSuccess) {
+      toast.success("Deposit confirmed!");
+      setAmount("");
+    }
+  }, [isDepositSuccess]);
+
+  useEffect(() => {
+    if (isWithdrawSuccess) {
+      toast.success("Withdrawal confirmed!");
+      setAmount("");
+    }
+  }, [isWithdrawSuccess]);
 
   // Parse amount based on tab (USDC: 6 decimals, Shares: 18 decimals)
   const parsedAmount =
@@ -103,56 +165,35 @@ export function DepositWithdraw() {
       ? (parseFloat(amount) * Number(sharePrice)) / 1e18 / 1e12 // Convert back to USDC decimals
       : 0;
 
-  const handleApprove = async () => {
-    try {
-      approveUsdc({
-        address: CONTRACTS.USDC as `0x${string}`,
-        abi: parseAbi(ERC20_ABI),
-        functionName: "approve",
-        args: [CONTRACTS.INDEX_FUND as `0x${string}`, parsedAmount],
-      });
-      toast.success("Approval submitted");
-      setTimeout(() => refetchAllowance(), 2000);
-    } catch (error) {
-      toast.error("Approval failed");
-      console.error(error);
-    }
+  const handleApprove = () => {
+    approveUsdc({
+      address: CONTRACTS.USDC as `0x${string}`,
+      abi: parseAbi(ERC20_ABI),
+      functionName: "approve",
+      args: [CONTRACTS.INDEX_FUND as `0x${string}`, parsedAmount],
+    });
   };
 
-  const handleDeposit = async () => {
+  const handleDeposit = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      deposit({
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
-        abi: parseAbi(INDEX_FUND_ABI),
-        functionName: "deposit",
-        args: [parsedAmount, address],
-      });
-      toast.success("Deposit submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Deposit failed");
-      console.error(error);
-    }
+    deposit({
+      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      abi: parseAbi(INDEX_FUND_ABI),
+      functionName: "deposit",
+      args: [parsedAmount, address],
+    });
   };
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     if (!address || !parsedAmount) return;
 
-    try {
-      withdraw({
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
-        abi: parseAbi(INDEX_FUND_ABI),
-        functionName: "redeem",
-        args: [parsedAmount, address, address],
-      });
-      toast.success("Withdrawal submitted");
-      setAmount("");
-    } catch (error) {
-      toast.error("Withdrawal failed");
-      console.error(error);
-    }
+    withdraw({
+      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      abi: parseAbi(INDEX_FUND_ABI),
+      functionName: "redeem",
+      args: [parsedAmount, address, address],
+    });
   };
 
   const handleMaxClick = () => {
