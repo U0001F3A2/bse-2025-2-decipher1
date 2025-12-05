@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi";
 import { parseEther, formatEther, parseAbi } from "viem";
 import toast from "react-hot-toast";
 import { TokenInput } from "@/components/shared/TokenInput";
@@ -10,7 +10,7 @@ import { CONTRACTS } from "@/lib/contracts";
 import { LP_VAULT_ABI, ERC20_ABI } from "@/lib/abis";
 import { useLPVaultUserPosition, formatTokenAmount, parseError } from "@/hooks";
 
-type Tab = "deposit" | "withdraw";
+type Tab = "wrap" | "deposit" | "withdraw";
 
 export function LPVaultCard() {
   const [activeTab, setActiveTab] = useState<Tab>("deposit");
@@ -18,6 +18,11 @@ export function LPVaultCard() {
 
   const { address, isConnected } = useAccount();
   const { shares, assetsValue } = useLPVaultUserPosition();
+
+  // ETH balance
+  const { data: ethBalance } = useBalance({
+    address: address,
+  });
 
   // WETH balance
   const { data: wethBalance } = useReadContract({
@@ -73,6 +78,18 @@ export function LPVaultCard() {
     hash: withdrawHash,
   });
 
+  // Wrap ETH to WETH
+  const {
+    writeContract: wrapEth,
+    isPending: isWrapping,
+    data: wrapHash,
+    error: wrapError,
+  } = useWriteContract();
+
+  const { isLoading: isWrapConfirming, isSuccess: isWrapSuccess, error: wrapReceiptError } = useWaitForTransactionReceipt({
+    hash: wrapHash,
+  });
+
   // Handle errors
   useEffect(() => {
     if (approveError) {
@@ -110,6 +127,18 @@ export function LPVaultCard() {
     }
   }, [withdrawReceiptError]);
 
+  useEffect(() => {
+    if (wrapError) {
+      toast.error(parseError(wrapError), { duration: 5000 });
+    }
+  }, [wrapError]);
+
+  useEffect(() => {
+    if (wrapReceiptError) {
+      toast.error(parseError(wrapReceiptError), { duration: 5000 });
+    }
+  }, [wrapReceiptError]);
+
   // Handle success
   useEffect(() => {
     if (isApproveSuccess) {
@@ -131,6 +160,13 @@ export function LPVaultCard() {
       setAmount("");
     }
   }, [isWithdrawSuccess]);
+
+  useEffect(() => {
+    if (isWrapSuccess) {
+      toast.success("ETH wrapped to WETH!");
+      setAmount("");
+    }
+  }, [isWrapSuccess]);
 
   const parsedAmount = amount ? parseEther(amount) : BigInt(0);
   const needsApproval =
@@ -169,8 +205,25 @@ export function LPVaultCard() {
     });
   };
 
+  const handleWrap = () => {
+    if (!parsedAmount) return;
+
+    wrapEth({
+      address: CONTRACTS.WETH as `0x${string}`,
+      abi: parseAbi(["function deposit() payable"]),
+      functionName: "deposit",
+      value: parsedAmount,
+    });
+  };
+
   const handleMaxClick = () => {
-    if (activeTab === "deposit" && wethBalance) {
+    if (activeTab === "wrap" && ethBalance) {
+      // Leave some ETH for gas
+      const maxWrap = ethBalance.value > parseEther("0.001")
+        ? ethBalance.value - parseEther("0.001")
+        : BigInt(0);
+      setAmount(formatEther(maxWrap));
+    } else if (activeTab === "deposit" && wethBalance) {
       setAmount(formatEther(wethBalance as bigint));
     } else if (activeTab === "withdraw" && assetsValue) {
       setAmount(formatEther(assetsValue));
@@ -183,12 +236,27 @@ export function LPVaultCard() {
     isDepositing ||
     isDepositConfirming ||
     isWithdrawing ||
-    isWithdrawConfirming;
+    isWithdrawConfirming ||
+    isWrapping ||
+    isWrapConfirming;
 
   return (
     <div className="glass-card p-6">
       {/* Tabs */}
       <div className="mb-6 flex gap-2 rounded-lg bg-white/5 p-1">
+        <button
+          onClick={() => {
+            setActiveTab("wrap");
+            setAmount("");
+          }}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
+            activeTab === "wrap"
+              ? "bg-accent-cyan text-white"
+              : "text-foreground-muted hover:text-white"
+          }`}
+        >
+          Wrap ETH
+        </button>
         <button
           onClick={() => {
             setActiveTab("deposit");
@@ -221,11 +289,13 @@ export function LPVaultCard() {
       <TokenInput
         value={amount}
         onChange={setAmount}
-        symbol="WETH"
+        symbol={activeTab === "wrap" ? "ETH" : "WETH"}
         balance={
-          activeTab === "deposit"
-            ? formatTokenAmount(wethBalance as bigint | undefined)
-            : formatTokenAmount(assetsValue)
+          activeTab === "wrap"
+            ? formatTokenAmount(ethBalance?.value)
+            : activeTab === "deposit"
+              ? formatTokenAmount(wethBalance as bigint | undefined)
+              : formatTokenAmount(assetsValue)
         }
         onMax={handleMaxClick}
         disabled={!isConnected}
@@ -236,7 +306,7 @@ export function LPVaultCard() {
         <div className="mt-4 rounded-lg bg-white/5 p-4">
           <div className="flex justify-between text-sm">
             <span className="text-foreground-muted">You will receive</span>
-            <span>~{amount} {activeTab === "deposit" ? "lpWETH" : "WETH"}</span>
+            <span>~{amount} {activeTab === "wrap" ? "WETH" : activeTab === "deposit" ? "lpWETH" : "WETH"}</span>
           </div>
         </div>
       )}
@@ -247,6 +317,15 @@ export function LPVaultCard() {
           <div className="rounded-xl bg-white/5 p-4 text-center text-foreground-muted">
             Connect wallet to continue
           </div>
+        ) : activeTab === "wrap" ? (
+          <TransactionButton
+            onClick={handleWrap}
+            isLoading={isWrapping || isWrapConfirming}
+            loadingText="Wrapping..."
+            disabled={!amount || parseFloat(amount) <= 0}
+          >
+            Wrap ETH → WETH
+          </TransactionButton>
         ) : activeTab === "deposit" ? (
           needsApproval ? (
             <TransactionButton

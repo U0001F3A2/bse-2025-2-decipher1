@@ -17,6 +17,18 @@ import { useETH2XUserPosition, useETH2XStats, formatTokenAmount, parseError } fr
 
 type Tab = "mint" | "redeem";
 
+// Format small numbers without scientific notation
+function formatSmallNumber(num: number): string {
+  if (num === 0) return "0";
+  if (num >= 1) {
+    return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }
+  // For small numbers, show enough decimals
+  const log = Math.floor(Math.log10(Math.abs(num)));
+  const decimals = Math.min(Math.abs(log) + 2, 18);
+  return num.toFixed(decimals);
+}
+
 export function MintRedeemCard() {
   const [activeTab, setActiveTab] = useState<Tab>("mint");
   const [amount, setAmount] = useState("");
@@ -154,15 +166,22 @@ export function MintRedeemCard() {
     parsedAmount > (usdcAllowance as bigint);
 
   // Calculate expected ETH2X from mint
+  // Contract: shares = (collateralAmount * PRECISION) / currentNav
+  // collateralAmount is in 6 decimals (USDC), nav is in 6 decimals, PRECISION is 1e18
+  // So: shares = (amount * 1e6 * 1e18) / (nav) where nav is ~1e6
+  // Simplified for display: shares = amount * 1e18 / nav (when amount is in USDC units)
   const expectedETH2X =
     activeTab === "mint" && amount && currentNAV && Number(currentNAV) > 0
-      ? (parseFloat(amount) * 1e18) / Number(currentNAV)
+      ? (parseFloat(amount) * 1e6 * 1e18) / Number(currentNAV) / 1e18
       : 0;
 
   // Calculate expected USDC from redeem
+  // Contract: valueInCollateral = (shares * currentNav) / PRECISION
+  // shares is in 18 decimals, nav is in 6 decimals
+  // So: value = (shares * nav) / 1e18, result in 6 decimals
   const expectedUSDC =
     activeTab === "redeem" && amount && currentNAV
-      ? (parseFloat(amount) * Number(currentNAV)) / 1e18
+      ? (parseFloat(amount) * Number(currentNAV)) / 1e6
       : 0;
 
   const handleApprove = () => {
@@ -259,25 +278,32 @@ export function MintRedeemCard() {
       />
 
       {/* Preview */}
-      {amount && parseFloat(amount) > 0 && (
+      {amount && parseFloat(amount) > 0 && parsedAmount > BigInt(0) && (
         <div className="mt-4 rounded-lg bg-white/5 p-4">
           <div className="flex justify-between text-sm">
             <span className="text-foreground-muted">You will receive</span>
-            <span>
+            <span className="text-right break-all">
               ~
               {activeTab === "mint"
-                ? `${expectedETH2X.toFixed(4)} ETH2X`
-                : `${expectedUSDC.toFixed(2)} USDC`}
+                ? `${formatSmallNumber(expectedETH2X)} ETH2X`
+                : `${formatSmallNumber(expectedUSDC)} USDC`}
             </span>
           </div>
           {activeTab === "mint" && (
             <div className="mt-2 flex justify-between text-sm">
               <span className="text-foreground-muted">Leverage exposure</span>
-              <span className="text-accent-cyan">
-                ${(parseFloat(amount) * 2).toFixed(2)} worth of ETH
+              <span className="text-accent-cyan text-right break-all">
+                ${formatSmallNumber(parseFloat(amount) * 2)} worth of ETH
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Minimum amount warning - USDC has 6 decimals, so minimum is 0.000001 (1 wei) */}
+      {activeTab === "mint" && amount && parseFloat(amount) > 0 && parsedAmount === BigInt(0) && (
+        <div className="mt-4 rounded-lg bg-warning/10 p-3 text-sm text-warning">
+          USDC minimum: 0.000001 (6 decimals precision)
         </div>
       )}
 
@@ -293,7 +319,7 @@ export function MintRedeemCard() {
               onClick={handleApprove}
               isLoading={isApproving || isApproveConfirming}
               loadingText="Approving..."
-              disabled={!amount || parseFloat(amount) <= 0}
+              disabled={!amount || parseFloat(amount) <= 0 || parsedAmount === BigInt(0)}
             >
               Approve USDC
             </TransactionButton>
@@ -302,7 +328,7 @@ export function MintRedeemCard() {
               onClick={handleMint}
               isLoading={isMinting || isMintConfirming}
               loadingText="Minting..."
-              disabled={!amount || parseFloat(amount) <= 0}
+              disabled={!amount || parseFloat(amount) <= 0 || parsedAmount === BigInt(0)}
             >
               Mint ETH2X
             </TransactionButton>
@@ -312,7 +338,7 @@ export function MintRedeemCard() {
             onClick={handleRedeem}
             isLoading={isRedeeming || isRedeemConfirming}
             loadingText="Redeeming..."
-            disabled={!amount || parseFloat(amount) <= 0}
+            disabled={!amount || parseFloat(amount) <= 0 || parsedAmount === BigInt(0)}
             variant="secondary"
           >
             Redeem

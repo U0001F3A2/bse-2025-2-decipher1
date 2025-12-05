@@ -294,13 +294,14 @@ export function formatTokenAmount(
   const formatted = formatUnits(amount, decimals);
   const num = parseFloat(formatted);
 
-  // For very small amounts, show more decimals to ensure visibility
-  if (num > 0 && num < 0.0001) {
-    // Find the first non-zero decimal place and show a few more
-    const scientificNotation = num.toExponential();
-    const exponent = parseInt(scientificNotation.split('e')[1]);
-    const neededDecimals = Math.min(Math.abs(exponent) + 2, 18);
-    return num.toFixed(neededDecimals);
+  if (num === 0) return "0";
+
+  // For small amounts, show enough decimals to display the value
+  if (num < 1) {
+    const log = Math.floor(Math.log10(Math.abs(num)));
+    const neededDecimals = Math.abs(log) + 2;
+    // Cap at 18 decimals (max for ETH-like tokens)
+    return num.toFixed(Math.min(neededDecimals, 18));
   }
 
   return num.toLocaleString(undefined, {
@@ -310,7 +311,16 @@ export function formatTokenAmount(
 }
 
 export function formatUSD(amount: number | undefined): string {
-  if (amount === undefined) return "$0.00";
+  if (amount === undefined || amount === 0) return "$0.00";
+
+  // For very small amounts, show more precision
+  if (amount > 0 && amount < 0.01) {
+    // Find how many decimals we need
+    const log = Math.floor(Math.log10(Math.abs(amount)));
+    const decimals = Math.min(Math.abs(log) + 2, 10);
+    return `$${amount.toFixed(decimals)}`;
+  }
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

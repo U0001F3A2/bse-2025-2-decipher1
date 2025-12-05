@@ -88,30 +88,36 @@ export default function DashboardPage() {
   const eth2xPosition = useETH2XUserPosition();
 
   // Calculate TVLs in USD
+  // LP Vault uses WETH (18 decimals)
   const lpVaultTVL =
     lpVaultStats.totalAssets && ethPrice
       ? (Number(lpVaultStats.totalAssets) / 1e18) * ethPrice
       : 0;
 
+  // Index Fund uses USDC (6 decimals) - totalAssets is in USDC
   const indexFundTVL = indexFundStats.totalAssets
-    ? Number(indexFundStats.totalAssets) / 1e18
+    ? Number(indexFundStats.totalAssets) / 1e6
     : 0;
 
   const totalTVL = lpVaultTVL + indexFundTVL;
 
   // Calculate user position values
+  // LP Vault uses WETH (18 decimals)
   const lpVaultValue =
     lpVaultPosition.assetsValue && ethPrice
       ? (Number(lpVaultPosition.assetsValue) / 1e18) * ethPrice
       : 0;
 
+  // Index Fund uses USDC (6 decimals)
   const indexFundValue = indexFundPosition.assetsValue
-    ? Number(indexFundPosition.assetsValue) / 1e18
+    ? Number(indexFundPosition.assetsValue) / 1e6
     : 0;
 
+  // ETH2X: balance is 18 decimals, NAV is 6 decimals (USDC)
+  // value = (balance * nav) / 1e18 / 1e6 = (balance * nav) / 1e24
   const eth2xValue =
     eth2xPosition.balance && eth2xStats.currentNAV
-      ? (Number(eth2xPosition.balance) * Number(eth2xStats.currentNAV)) / 1e36
+      ? (Number(eth2xPosition.balance) * Number(eth2xStats.currentNAV)) / 1e24
       : 0;
 
   const isLoading =
