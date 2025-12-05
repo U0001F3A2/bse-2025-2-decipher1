@@ -184,6 +184,17 @@ export function useIndexFundStats() {
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "managementFeeRate",
       },
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "convertToAssets",
+        args: [BigInt(1e18)], // 1 share price
+      },
+      {
+        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        abi: parseAbi(INDEX_FUND_ABI),
+        functionName: "accruedFees",
+      },
     ],
   });
 
@@ -191,6 +202,25 @@ export function useIndexFundStats() {
     totalAssets: data?.[0]?.result as bigint | undefined,
     totalSupply: data?.[1]?.result as bigint | undefined,
     managementFeeRate: data?.[2]?.result as bigint | undefined,
+    sharePrice: data?.[3]?.result as bigint | undefined,
+    accruedFees: data?.[4]?.result as bigint | undefined,
+    isLoading,
+    error,
+  };
+}
+
+export function useIndexFundAllocations() {
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACTS.INDEX_FUND as `0x${string}`,
+    abi: parseAbi(INDEX_FUND_ABI),
+    functionName: "getAllocations",
+  });
+
+  const result = data as [string[], bigint[]] | undefined;
+
+  return {
+    tokens: result?.[0] || [],
+    weights: result?.[1] || [],
     isLoading,
     error,
   };
