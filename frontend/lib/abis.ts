@@ -43,7 +43,7 @@ export const FUND_GOVERNANCE_ABI = [
   "function cancel(uint256 proposalId) external",
 
   // View functions
-  "function getProposal(uint256 proposalId) view returns (tuple(uint256 id, string description, address proposer, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled))",
+  "function getProposal(uint256 proposalId) view returns (uint256 id, string description, address proposer, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled)",
   "function getProposalCount() view returns (uint256)",
   "function hasVoted(uint256 proposalId, address account) view returns (bool)",
   "function getVotingPower(address account) view returns (uint256)",
