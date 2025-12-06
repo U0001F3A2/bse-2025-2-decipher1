@@ -30,9 +30,34 @@ export const INDEX_FUND_ABI = [
 ] as const;
 
 export const FUND_FACTORY_ABI = [
-  "function createFund(string name, string symbol, address[] tokens, uint256[] weights, uint256 feeRate) returns (address)",
-  "function getFunds() view returns (address[])",
+  "function getAllFunds() view returns (address[])",
   "function getFundCount() view returns (uint256)",
+  "function isFund(address) view returns (bool)",
+  "function owner() view returns (address)",
+] as const;
+
+// For createFund - uses struct, need JSON ABI
+export const FUND_FACTORY_CREATE_ABI = [
+  {
+    name: "createFund",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "name", type: "string" },
+      { name: "symbol", type: "string" },
+      { name: "asset", type: "address" },
+      {
+        name: "allocations",
+        type: "tuple[]",
+        components: [
+          { name: "token", type: "address" },
+          { name: "targetPercentage", type: "uint256" },
+        ],
+      },
+      { name: "managementFee", type: "uint256" },
+    ],
+    outputs: [{ name: "fund", type: "address" }],
+  },
 ] as const;
 
 export const FUND_GOVERNANCE_ABI = [

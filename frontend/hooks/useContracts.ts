@@ -166,36 +166,39 @@ export function useETH2XUserPosition() {
 }
 
 // Index Fund hooks
-export function useIndexFundStats() {
+export function useIndexFundStats(fundAddress?: string) {
+  const address = (fundAddress || CONTRACTS.INDEX_FUND) as `0x${string}`;
+
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "totalAssets",
       },
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "totalSupply",
       },
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "managementFeeRate",
       },
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "convertToAssets",
         args: [BigInt(1e18)], // 1 share price
       },
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "accruedFees",
       },
     ],
+    query: { enabled: !!address },
   });
 
   return {
@@ -209,11 +212,14 @@ export function useIndexFundStats() {
   };
 }
 
-export function useIndexFundAllocations() {
+export function useIndexFundAllocations(fundAddress?: string) {
+  const address = (fundAddress || CONTRACTS.INDEX_FUND) as `0x${string}`;
+
   const { data, isLoading, error } = useReadContract({
-    address: CONTRACTS.INDEX_FUND as `0x${string}`,
+    address,
     abi: parseAbi(INDEX_FUND_ABI),
     functionName: "getAllocations",
+    query: { enabled: !!address },
   });
 
   const result = data as [string[], bigint[]] | undefined;
@@ -226,26 +232,27 @@ export function useIndexFundAllocations() {
   };
 }
 
-export function useIndexFundUserPosition() {
+export function useIndexFundUserPosition(fundAddress?: string) {
   const { address } = useAccount();
+  const fundAddr = (fundAddress || CONTRACTS.INDEX_FUND) as `0x${string}`;
 
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address: fundAddr,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "balanceOf",
         args: address ? [address] : undefined,
       },
       {
-        address: CONTRACTS.INDEX_FUND as `0x${string}`,
+        address: fundAddr,
         abi: parseAbi(INDEX_FUND_ABI),
         functionName: "convertToAssets",
         args: [BigInt(1e18)], // 1 share
       },
     ],
     query: {
-      enabled: !!address,
+      enabled: !!address && !!fundAddr,
     },
   });
 

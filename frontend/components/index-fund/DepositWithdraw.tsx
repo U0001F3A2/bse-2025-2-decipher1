@@ -17,13 +17,19 @@ import { useIndexFundUserPosition, useIndexFundStats, formatTokenAmount, parseEr
 
 type Tab = "deposit" | "withdraw";
 
-export function DepositWithdraw() {
+interface DepositWithdrawProps {
+  fundAddress?: string;
+}
+
+export function DepositWithdraw({ fundAddress }: DepositWithdrawProps) {
   const [activeTab, setActiveTab] = useState<Tab>("deposit");
   const [amount, setAmount] = useState("");
 
   const { address, isConnected } = useAccount();
-  const { shares, assetsValue } = useIndexFundUserPosition();
-  const { sharePrice } = useIndexFundStats();
+  const { shares, assetsValue } = useIndexFundUserPosition(fundAddress);
+  const { sharePrice } = useIndexFundStats(fundAddress);
+
+  const targetFund = (fundAddress || CONTRACTS.INDEX_FUND) as `0x${string}`;
 
   // USDC balance (6 decimals) - assuming deposits are in USDC
   const { data: usdcBalance } = useReadContract({
@@ -39,7 +45,7 @@ export function DepositWithdraw() {
     address: CONTRACTS.USDC as `0x${string}`,
     abi: parseAbi(ERC20_ABI),
     functionName: "allowance",
-    args: address ? [address, CONTRACTS.INDEX_FUND as `0x${string}`] : undefined,
+    args: address ? [address, targetFund] : undefined,
     query: { enabled: !!address },
   });
 
@@ -170,7 +176,7 @@ export function DepositWithdraw() {
       address: CONTRACTS.USDC as `0x${string}`,
       abi: parseAbi(ERC20_ABI),
       functionName: "approve",
-      args: [CONTRACTS.INDEX_FUND as `0x${string}`, parsedAmount],
+      args: [targetFund, parsedAmount],
     });
   };
 
@@ -178,7 +184,7 @@ export function DepositWithdraw() {
     if (!address || !parsedAmount) return;
 
     deposit({
-      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      address: targetFund,
       abi: parseAbi(INDEX_FUND_ABI),
       functionName: "deposit",
       args: [parsedAmount, address],
@@ -189,7 +195,7 @@ export function DepositWithdraw() {
     if (!address || !parsedAmount) return;
 
     withdraw({
-      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      address: targetFund,
       abi: parseAbi(INDEX_FUND_ABI),
       functionName: "redeem",
       args: [parsedAmount, address, address],

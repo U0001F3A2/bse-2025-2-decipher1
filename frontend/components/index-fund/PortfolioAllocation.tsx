@@ -28,8 +28,12 @@ function getTokenInfo(address: string) {
   );
 }
 
-export function PortfolioAllocation() {
-  const { tokens, weights, isLoading } = useIndexFundAllocations();
+interface PortfolioAllocationProps {
+  fundAddress?: string;
+}
+
+export function PortfolioAllocation({ fundAddress }: PortfolioAllocationProps) {
+  const { tokens, weights, isLoading } = useIndexFundAllocations(fundAddress);
 
   if (isLoading) {
     return (

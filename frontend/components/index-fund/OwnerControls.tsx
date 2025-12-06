@@ -10,13 +10,18 @@ import { CONTRACTS } from "@/lib/contracts";
 import { INDEX_FUND_ABI } from "@/lib/abis";
 import { useIndexFundStats, formatTokenAmount, parseError } from "@/hooks";
 
-export function OwnerControls() {
+interface OwnerControlsProps {
+  fundAddress?: string;
+}
+
+export function OwnerControls({ fundAddress }: OwnerControlsProps) {
   const { address } = useAccount();
-  const { accruedFees, isLoading } = useIndexFundStats();
+  const targetFund = (fundAddress || CONTRACTS.INDEX_FUND) as `0x${string}`;
+  const { accruedFees, isLoading } = useIndexFundStats(fundAddress);
 
   // Check if current user is owner (simple check - in production would read owner() from contract)
   const { data: owner } = useReadContract({
-    address: CONTRACTS.INDEX_FUND as `0x${string}`,
+    address: targetFund,
     abi: parseAbi(["function owner() view returns (address)"]),
     functionName: "owner",
   });
@@ -87,7 +92,7 @@ export function OwnerControls() {
 
   const handleCollectFees = () => {
     collectFees({
-      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      address: targetFund,
       abi: parseAbi(INDEX_FUND_ABI),
       functionName: "collectFees",
     });
@@ -95,7 +100,7 @@ export function OwnerControls() {
 
   const handleRebalance = () => {
     rebalance({
-      address: CONTRACTS.INDEX_FUND as `0x${string}`,
+      address: targetFund,
       abi: parseAbi(INDEX_FUND_ABI),
       functionName: "rebalance",
     });
