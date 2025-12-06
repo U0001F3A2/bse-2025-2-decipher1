@@ -15,7 +15,7 @@ Decentralized index fund protocol on Base Sepolia:
    - totalAssets() sums raw balances without price conversion
    - Need Chainlink integration (2-3 days)
 
-2. **Frontend Non-Functional** (app/page.tsx)
+2. **Frontend Non-Functional(Resolved)** (app/page.tsx) 
    - No Web3 integration, wallet connection, or contract interactions
    - Requires wagmi/viem setup (2-4 weeks)
 
@@ -53,3 +53,4 @@ Decentralized index fund protocol on Base Sepolia:
 **Test Coverage**: Basic tests present, missing edge cases and integration tests
 **Scripts**: Deploy, Rebalance, CollectFees (all optimized)
 **Frontend**: Placeholder only - needs complete rebuild
+
