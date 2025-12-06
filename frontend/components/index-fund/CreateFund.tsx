@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
-import { parseAbi } from "viem";
-import { Loader2, Plus, Trash2, AlertCircle, ShieldAlert } from "lucide-react";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
 import { CONTRACTS } from "@/lib/contracts";
-import { FUND_FACTORY_ABI, FUND_FACTORY_CREATE_ABI } from "@/lib/abis";
+import { FUND_FACTORY_CREATE_ABI } from "@/lib/abis";
 import toast from "react-hot-toast";
 
 interface TokenAllocation {
@@ -29,16 +28,6 @@ export function CreateFund({ onSuccess }: { onSuccess?: () => void }) {
     { token: CONTRACTS.WETH, targetPercentage: 5000 },
     { token: CONTRACTS.USDC, targetPercentage: 5000 },
   ]);
-
-  // Check if user is factory owner
-  const { data: factoryOwner } = useReadContract({
-    address: CONTRACTS.FUND_FACTORY as `0x${string}`,
-    abi: parseAbi(FUND_FACTORY_ABI),
-    functionName: "owner",
-  });
-
-  const isOwner = factoryOwner && address &&
-    (factoryOwner as string).toLowerCase() === address.toLowerCase();
 
   const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -72,11 +61,6 @@ export function CreateFund({ onSuccess }: { onSuccess?: () => void }) {
   const handleSubmit = async () => {
     if (!isConnected || !address) {
       toast.error("Please connect your wallet");
-      return;
-    }
-
-    if (!isOwner) {
-      toast.error("Only factory owner can create funds");
       return;
     }
 
@@ -140,22 +124,13 @@ export function CreateFund({ onSuccess }: { onSuccess?: () => void }) {
 
   if (!isOpen) {
     return (
-      <div className="space-y-3">
-        <button
-          onClick={() => setIsOpen(true)}
-          disabled={!isOwner}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-semibold text-white transition-all hover:from-purple-500 hover:to-blue-500 hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="h-5 w-5" />
-          Create New Fund
-        </button>
-        {!isOwner && isConnected && (
-          <div className="flex items-center gap-2 text-sm text-foreground-muted">
-            <ShieldAlert className="h-4 w-4" />
-            Only the factory owner can create new funds
-          </div>
-        )}
-      </div>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-semibold text-white transition-all hover:from-purple-500 hover:to-blue-500 hover:shadow-[0_0_20px_rgba(139,92,246,0.4)]"
+      >
+        <Plus className="h-5 w-5" />
+        Create New Fund
+      </button>
     );
   }
 
@@ -300,7 +275,7 @@ export function CreateFund({ onSuccess }: { onSuccess?: () => void }) {
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
-          disabled={!isConnected || !isOwner || isPending || isConfirming || !isValidWeight || !name || !symbol}
+          disabled={!isConnected || isPending || isConfirming || !isValidWeight || !name || !symbol}
           className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 py-3 font-semibold text-white transition-all hover:from-purple-500 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending || isConfirming ? (
