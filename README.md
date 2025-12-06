@@ -136,9 +136,14 @@ ETHERSCAN_API_KEY=your_api_key
 - **USDC**: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
 - **ETH/USD Oracle**: `0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1`
 
+### Index Fund
+- **FundFactory**: `0x94D11115cA3f4cEfFCd5da79b36d87a5A29e4228`
+- **FundGovernance**: `0x7AEF062954dB77C668B1648C6484fbAbf866aCDf`
+- **Initial Fund (CIF)**: `0x46428E256D482ccDe3A151608A5A2B64733692c5`
+
 ### Leveraged ETF (ETH 2x Daily Long)
-- **LP Vault (lpWETH)**: `0x06d5a11863262986dc18EA57F7620911cB0b82F1`
-- **Leveraged Token (ETH2X)**: `0xe96a9fc721bBF100c5b528707e787C90ecE79cfE`
+- **LP Vault (lpWETH)**: `0xE4277E0a253A44b82396add1F61C36E89Eb1105C`
+- **Leveraged Token (ETH2X)**: `0x39fC46E92E3e3165A8549F34D76f886980d9D9cD`
 
 Deployed addresses: `contracts/deployments/base-sepolia.json`, `contracts/deployments/leveraged-eth2x.json`
 

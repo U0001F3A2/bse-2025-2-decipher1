@@ -19,10 +19,8 @@ contract DeployScript is Script {
     uint256 constant PROPOSAL_THRESHOLD = 100 * 10 ** 18;
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
-
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast();
+        address deployer = msg.sender;
 
         IndexFund fundImplementation = new IndexFund();
         FundFactory factoryImplementation = new FundFactory();

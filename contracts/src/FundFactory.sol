@@ -43,7 +43,7 @@ contract FundFactory is OwnableUpgradeable, UUPSUpgradeable {
         address asset,
         IIndexFund.TokenAllocation[] memory allocations,
         uint256 managementFee
-    ) external onlyOwner returns (address fund) {
+    ) external returns (address fund) {
         bytes memory initData = abi.encodeWithSelector(
             IndexFund.initialize.selector, name, symbol, asset, allocations, managementFee, swapRouter, treasury
         );
@@ -51,7 +51,7 @@ contract FundFactory is OwnableUpgradeable, UUPSUpgradeable {
         fund = address(new ERC1967Proxy(fundImplementation, initData));
         funds.push(fund);
         isFund[fund] = true;
-        IndexFund(fund).transferOwnership(owner());
+        IndexFund(fund).transferOwnership(msg.sender);
 
         emit FundCreated(fund, name, symbol, asset);
     }
